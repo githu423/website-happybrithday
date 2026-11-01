@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "A little birthday universe, made with love. A personal, Eren-inspired birthday keepsake.",
+  "description": "Eight little pages, one big love. A personal, Eren-inspired birthday keepsake.",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "start": "vite --host 0.0.0.0",

@@ -2,7 +2,7 @@
 
 **Sebuah hadiah kecil. Untuk rasa yang besar.**
 
-Website kejutan ulang tahun berbahasa Indonesia untuk pasangan: scrapbook romantis, lucu, dan manis dengan ilustrasi Eren Yeager yang membawa kue. Dibangun dengan HTML, CSS, JavaScript dan Vite. Tanpa database, tanpa akun pasangan, tanpa layanan upload, dan tanpa autoplay musik.
+Website kejutan ulang tahun berbahasa Indonesia untuk pasangan: scrapbook romantis, lucu, dan manis dengan ilustrasi Eren Yeager yang membawa kue. Dikemas dalam **8 halaman terpisah, bukan satu halaman panjang yang di-scroll**. Setiap halaman punya interaksi sendiri, dengan tombol Kembali/Lanjut dan daftar halaman seperti membuka buku. Dibangun dengan HTML, CSS, JavaScript dan Vite. Tanpa database, tanpa akun pasangan, tanpa layanan upload, dan tanpa autoplay musik.
 
 > Foto dan video pasangan **belum diisi sesuai permintaan**. Bingkai berisi ilustrasi penanda yang dibuat khusus, bukan foto pasangan orang lain. Ganti dengan momen kalian sebelum hadiahnya dikirim.
 
@@ -22,6 +22,25 @@ npm run build     # membuat versi produksi di dist/
 npm run preview   # mencoba hasil build secara lokal
 npm test          # pemeriksaan konfigurasi dan aset
 ```
+
+## Delapan halaman, delapan kejutan
+
+| Halaman | Alamat | Interaksi |
+| --- | --- | --- |
+| 01 · Pembuka | `/#home` | Klik catatan misi Eren untuk pesan kejutan |
+| 02 · Alasan sayang | `/#reasons` | Balik kartu dan simpan alasan favorit |
+| 03 · Album kita | `/#memories` | Balik lembar album, perbesar foto, coba foto lokal |
+| 04 · Film kita | `/#film` | Putar video kenangan dari file sendiri |
+| 05 · Harapan | `/#wish` | Tiup tiga lilin dan buka harapan |
+| 06 · Surat cinta | `/#letter` | Buka amplop, baca, simpan surat, peluk balik |
+| 07 · Kupon sayang | `/#coupons` | Pilih kupon, gosok, dan unduh PNG |
+| 08 · Penutup | `/#closing` | Kirim pelukan, lihat progres, atau baca ulang |
+
+Gunakan **Kembali / Lanjut**, titik halaman di bawah, atau tombol **Halaman** di header. Di desktop, menu atas juga bisa dipakai. Tombol panah kiri/kanan pada keyboard membalik halaman ketika fokus tidak sedang berada pada kontrol interaktif. Link langsung seperti `/#letter` dan tombol Back browser tetap berfungsi. Link lama `/#surprises` diarahkan ke Harapan.
+
+Hanya satu halaman yang tampil pada satu waktu. Tidak ada scroll panjang antarbagian; pada layar yang sangat pendek atau teks personal yang panjang, isi halaman boleh di-scroll secara terpisah agar tombol dan pesan tidak terpotong. Header dan navigasi tetap terlihat. Foto/video pratinjau tetap tersimpan saat berpindah halaman, tetapi hilang saat browser dimuat ulang. Video otomatis dijeda saat meninggalkan halaman Film.
+
+Ini satu aplikasi Vite dengan rute hash, bukan delapan file HTML terpisah. Tidak diperlukan konfigurasi rewrite tambahan di Vercel. Urutan dan label halaman ada di `src/pages.js`; jangan mengubah ID tanpa menyesuaikan section di `index.html`.
 
 ## 1. Ubah nama dan pesan dulu
 
@@ -76,7 +95,7 @@ Ubah teks di antara tanda kutip. Jangan menghapus koma di akhir baris. Kalau tek
 
 - Format: JPG, PNG, WebP, AVIF, GIF.
 - Saran ukuran: **di bawah 2 MB per foto**; sekitar 1200–1600 px sudah tajam untuk galeri.
-- Foto persegi atau portrait ringan paling cocok. Semua rasio diterima; bingkai melakukan crop, sedangkan lightbox menampilkan foto utuh.
+- Foto persegi atau portrait ringan paling cocok. Semua rasio diterima; bingkai melakukan crop, sedangkan lightbox menampilkan foto utuh. Album membalik dua foto per lembar di desktop dan satu foto di HP.
 - `caption` adalah tulisan tangan di bawah foto.
 - `alt` mendeskripsikan foto untuk pembaca layar dan saat gambar gagal dimuat.
 - Jumlah bingkai mengikuti jumlah objek pada array `photos`; boleh ditambah atau dikurangi.
@@ -111,7 +130,7 @@ video: {
 - Untuk video panjang atau file besar, gunakan Object Storage/CDN dengan URL **direct file HTTPS**, bukan link halaman YouTube. Player ini memakai HTML `<video>`, bukan embed YouTube.
 - Tombol **“Coba video lokal”** memutar file dari perangkat tanpa upload, maksimum 250 MB. Pratinjau hilang saat refresh; codec tetap harus didukung browser.
 - Video tidak autoplay. Kontrol bawaan menyediakan play/pause, seek, volume, dan fullscreen sesuai browser.
-- Musik website otomatis berhenti saat video dimulai, lalu melanjutkan jika sebelumnya sedang menyala.
+- Musik website otomatis berhenti saat video dimulai, lalu melanjutkan jika sebelumnya sedang menyala. Saat pindah ke halaman lain, video berhenti dan tidak menyala lagi sendiri.
 
 ### Contoh kompres dengan FFmpeg (opsional)
 
@@ -155,7 +174,7 @@ Proyek sudah punya `vercel.json`:
 ### Cara paling mudah: lewat GitHub + dashboard
 
 1. Pastikan foto, video, nama, dan surat final sudah masuk proyek.
-2. Push proyek ke repository GitHub milikmu.
+2. Push proyek ke repository GitHub milikmu. Jika mengimpor branch `arena/e478c91e-website-happybrithday`, pilih branch itu sebagai Production Branch di Settings → Environments, atau jadikan branch tersebut default branch repository. Branch `main` awal tidak berisi website delapan halaman.
 3. Buka **vercel.com**, masuk ke akunmu.
 4. Pilih **Add New → Project**, lalu **Import** repository ini.
 5. Vercel membaca `vercel.json`. Pastikan framework Vite, build `npm run build`, output `dist`.
@@ -197,7 +216,7 @@ Jangan menaruh password/token Vercel di kode atau chat. Jangan commit folder `.v
 ## Struktur folder
 
 ```text
-index.html                   Struktur halaman dan dialog
+index.html                   Delapan section halaman dan dialog
 public/
   config.js                  ★ Semua nama, pesan, foto, video, musik
   favicon.svg
@@ -209,8 +228,10 @@ public/
     video/                   ★ Masukkan video kalian di sini
     music/                   Lagu opsional
 src/
-  main.js                    Interaksi website
-  styles.css                 Tema scrapbook dan tampilan responsif
+  main.js                    Router halaman dan seluruh interaksi
+  pages.js                   ★ Urutan, nama, dan deskripsi 8 halaman
+  pages.css                  Layout satu halaman per layar + navigasi
+  styles.css                 Tema scrapbook dan komponen visual
   icons.js                   Ikon SVG inline
   illustrations.js           Ilustrasi penanda foto original
   audio.js                   Melodi kotak musik original
@@ -223,16 +244,17 @@ vercel.json                  Pengaturan deploy
 
 ## Fitur dan aksesibilitas
 
+- Delapan halaman terpisah dengan rute hash, tombol Kembali/Lanjut, daftar isi, deep link, serta Back/Forward browser. Tiap halaman punya interaksi sendiri.
 - Ilustrasi Eren, polaroid, washi tape, stiker, tipografi editorial, dan palet rose/sage.
 - Alasan sayang berganti dengan kontrol dan favorit lokal.
-- Galeri dengan lightbox, tombol panah, keyboard kiri/kanan, swipe, Escape, dan focus trap dialog native.
+- Album per lembar dengan lightbox, tombol panah, keyboard kiri/kanan, swipe, Escape, dan focus trap dialog native.
 - Native video player dengan pesan kesalahan format/path yang jelas.
 - Tiga lilin interaktif: klik satu per satu atau tiup semuanya; harapan muncul dan confetti menyala.
 - Surat yang dapat diunduh, pelukan animasi, kupon gosok mouse/sentuh dengan alternatif keyboard dan unduhan PNG.
 - Progres tiga kejutan tersimpan lokal, tetap boleh dibuka ulang.
 - Responsif untuk HP, tablet, desktop; target sentuh, label aksesibilitas, skip link, focus visible.
 - `prefers-reduced-motion` dihormati: animasi dekoratif dan confetti dikurangi/dimatikan.
-- Tanpa JavaScript, pesan dan ilustrasi tetap dapat dibaca; interaksi dan pengisian data personal membutuhkan JavaScript.
+- Tanpa JavaScript, halaman pembuka dan pesan noscript tetap tampil. Navigasi, tujuh halaman kejutan berikutnya, dan pengisian data personal membutuhkan JavaScript.
 
 ## Pemeriksaan sebelum dikirim
 
@@ -267,7 +289,7 @@ npm run test:e2e                  # pengujian interaksi di browser
 npm run build                    # pastikan versi produksi berhasil dibuat
 ```
 
-Tes browser mencakup galeri dan keyboard, foto/video lokal, kartu alasan sayang, lilin, surat dan unduhannya, kupon gosok/keyboard dan PNG, musik opt-in, progres hadiah, fallback foto hilang, keamanan teks konfigurasi, serta lebar layar 320–1440 px. Dev server dinyalakan otomatis oleh Playwright jika belum berjalan. Untuk menguji URL production/preview, set `TEST_BASE_URL` ke URL tersebut.
+Tes browser mencakup delapan halaman dan interaksinya, rute/deep link/Back, album dan keyboard, foto/video lokal, pemutusan video saat pindah halaman, kartu alasan sayang, lilin, surat dan unduhannya, kupon gosok/keyboard dan PNG, musik opt-in, progres hadiah, fallback foto hilang, keamanan teks konfigurasi, serta lebar layar 320–1440 px tanpa scroll dokumen. Dev server dinyalakan otomatis oleh Playwright jika belum berjalan. Untuk menguji URL production/preview, set `TEST_BASE_URL` ke URL tersebut.
 
 ## Karya dan lisensi pihak ketiga
 

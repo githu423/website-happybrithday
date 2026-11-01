@@ -10,10 +10,20 @@ Tidak perlu deploy ke Vercel dulu. Semua bisa dites di komputer sendiri.
      node --version
      npm --version
 
-2. BUKA PROYEK
-   Ekstrak ZIP ini terlebih dahulu.
-   Di VS Code: File > Open Folder, pilih folder hasil ekstrak yang berisi package.json.
+2. AMBIL PROYEK DARI GITHUB
+   Pasang Git jika belum ada, lalu di Terminal VS Code jalankan:
+
+     git clone --branch arena/e478c91e-website-happybrithday --single-branch https://github.com/githu423/website-happybrithday.git
+     cd website-happybrithday
+     code .
+
+   Jika folder proyek sudah ada dari clone sebelumnya:
+     cd website-happybrithday
+     git pull
+
+   Di VS Code: File > Open Folder, pilih folder yang berisi package.json.
    Jangan hanya membuka file index.html satu per satu.
+   Versi 8 halaman berada di branch di atas, bukan branch main.
 
 3. JALANKAN WEBSITE
    Buka Terminal > New Terminal, lalu ketik:
@@ -30,6 +40,21 @@ Tidak perlu deploy ke Vercel dulu. Semua bisa dites di komputer sendiri.
 
    PENTING: Jangan buka index.html dengan klik dua kali atau Live Server biasa.
    Proyek ini memakai Vite, jadi jalankan npm run dev.
+
+   CARA MEMBUKA HADIAH
+   Website sekarang terdiri dari 8 halaman, bukan scroll panjang:
+     1. Pembuka: klik misi Eren.
+     2. Alasan sayang: balik kartu, simpan favorit.
+     3. Album: balik lembar foto, klik untuk memperbesar.
+     4. Film: putar video kalian.
+     5. Harapan: tiup lilin.
+     6. Surat: klik amplop, baca dan simpan surat.
+     7. Kupon: pilih, gosok, dan unduh kupon.
+     8. Penutup: kirim pelukan atau baca ulang.
+
+   Gunakan Kembali/Lanjut atau tombol Halaman untuk berpindah.
+   Jangan scroll untuk mencari bagian berikutnya: tiap halaman berdiri sendiri.
+   Layar sangat pendek mungkin punya scroll kecil di dalam halaman saja.
 
 4. MASUKKAN ISI PERSONAL
    Nama, surat, alasan sayang, harapan, dan kupon:
@@ -76,7 +101,9 @@ Tidak perlu deploy ke Vercel dulu. Semua bisa dites di komputer sendiri.
 
 7. KALAU ADA MASALAH
    - npm not found: install Node.js, lalu buka ulang VS Code.
-   - Cannot find package.json: buka folder proyek, bukan folder pembungkus ZIP.
+   - Cannot find package.json: buka folder website-happybrithday hasil clone.
+   - git pull gagal: pastikan clone branch yang tertulis di langkah 2.
+     Jangan paksa reset jika ada perubahan pribadi yang belum disimpan.
    - Port sudah dipakai: gunakan alamat lain yang muncul di terminal.
    - Foto/video tidak tampil: cek path dan nama file di config.js.
    - Video tidak dapat diputar: gunakan MP4 dengan H.264 + AAC.

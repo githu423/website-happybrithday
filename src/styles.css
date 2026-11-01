@@ -433,7 +433,7 @@ i[data-icon] { display: inline-flex; align-items: center; justify-content: cente
 .setup-content { padding-top: 20px; font-size: 12px; line-height: 1.9; color: #626e56; }
 .setup-content ol { padding-left: 18px; margin-block: 0 15px; }
 .setup-content li { padding-left: 4px; margin-top: 7px; }
-.setup-content code { font-family: ui-monospace, monospace; font-size: 10px; color: #7d7964; background: #eeeede; padding: 3px 5px; border-radius: 3px; overflow-wrap: anywhere; }
+.setup-content code { font-family: ui-monospace, monospace; font-size: 10px; color: #62634f; background: #eeeede; padding: 3px 5px; border-radius: 3px; overflow-wrap: anywhere; }
 .setup-content pre { padding: 15px; border: 1px dashed #d1d7be; border-radius: 5px; background: #f0f2e6; white-space: pre-wrap; overflow-wrap: anywhere; }
 .setup-content pre code { background: none; padding: 0; }
 .setup-content > p { margin-top: 12px; }

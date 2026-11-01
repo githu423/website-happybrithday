@@ -1,4 +1,6 @@
 import './styles.css';
+import './pages.css';
+import { PAGES, pageFromHash, navigationState } from './pages.js';
 import { icon, hydrateIcons } from './icons.js';
 import { placeholderImage } from './illustrations.js';
 import { BirthdayMusic } from './audio.js';
@@ -67,42 +69,154 @@ letterParagraphs.forEach((text) => {
 $('#year').textContent = new Date().getFullYear();
 hydrateIcons();
 
-// Scroll is ornamental; every section remains readable without animation.
-if ('IntersectionObserver' in window) {
-  document.documentElement.classList.add('js');
-  const revealObserver = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('is-visible');
-        revealObserver.unobserve(entry.target);
+// One chapter at a time. Hash routes support direct links and browser Back/Forward.
+// Personalization and object-URL previews survive chapter changes (no reload).
+const personalTitle = document.title;
+let activePage = '';
+let activePageIndex = 0;
+let pageAnimationTimer;
+
+PAGES.forEach((page, index) => {
+  const dot = document.createElement('a');
+  dot.className = 'page-dot';
+  dot.href = `#${page.id}`;
+  dot.dataset.pageLink = page.id;
+  dot.setAttribute('aria-label', `Halaman ${index + 1}: ${page.label}`);
+  dot.title = page.label;
+  $('#page-dots').append(dot);
+
+  const link = document.createElement('a');
+  link.className = 'chapter-link';
+  link.href = `#${page.id}`;
+  link.dataset.pageLink = page.id;
+  link.innerHTML = `${icon(page.icon)}<span><span class="chapter-number">HALAMAN ${String(index + 1).padStart(2, '0')}</span><strong></strong><small></small></span>${icon('arrow-up-right', 'chapter-arrow')}`;
+  $('strong', link).textContent = page.label;
+  $('small', link).textContent = page.description;
+  $('#chapter-list').append(link);
+});
+
+function showPage(id, { focus = true, backward = false } = {}) {
+  const state = navigationState(id);
+  const changed = activePage !== id;
+  if (changed && activePage === 'film') {
+    resumeMusicAfterVideo = false;
+    video.pause();
+  }
+  if (changed) {
+    $$('dialog[open]').forEach((dialog) => dialog.close());
+    $('#toast').classList.remove('is-visible');
+  }
+  activePage = id;
+  activePageIndex = state.index;
+  document.body.dataset.page = id;
+  $$('.app-page').forEach((page) => {
+    const active = page.dataset.page === id;
+    page.hidden = !active;
+    page.classList.remove('is-entering', 'is-backward');
+    if (active) {
+      $('.page-inner', page).scrollTop = 0;
+      if (changed) {
+        page.classList.toggle('is-backward', backward);
+        page.classList.add('is-entering');
       }
-    });
-  }, { threshold: 0.08, rootMargin: '0px 0px 25px 0px' });
-  $$('.reveal').forEach((node) => revealObserver.observe(node));
-  const navObserver = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) return;
-      $$('.main-nav a').forEach((link) => {
-        const active = link.hash === `#${entry.target.id}`;
-        link.classList.toggle('is-active', active);
-        if (active) link.setAttribute('aria-current', 'location');
-        else link.removeAttribute('aria-current');
-      });
-    });
-  }, { rootMargin: '-15% 0px -55% 0px', threshold: 0 });
-  ['reasons', 'memories', 'surprises'].forEach((id) => navObserver.observe(document.getElementById(id)));
+    }
+  });
+  clearTimeout(pageAnimationTimer);
+  pageAnimationTimer = setTimeout(() => $$('.app-page').forEach((page) => page.classList.remove('is-entering', 'is-backward')), 500);
+  $$('[data-page-link]').forEach((link) => {
+    const current = link.dataset.pageLink === id;
+    if (current) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+    if (link.closest('.main-nav')) {
+      const group = PAGES.find((page) => page.id === link.dataset.pageLink)?.group;
+      link.classList.toggle('is-active', group === state.current.group);
+    }
+  });
+  $('#page-number').textContent = `${String(state.index + 1).padStart(2, '0')} / ${String(state.total).padStart(2, '0')}`;
+  $('#page-name').textContent = state.current.label;
+  $('#reading-progress').style.transform = `scaleX(${(state.index + 1) / state.total})`;
+  $('#page-prev').disabled = !state.previous;
+  $('#page-prev').setAttribute('aria-label', state.previous ? `Kembali ke ${state.previous.label}` : 'Kembali — ini halaman pertama');
+  $('#page-next').href = `#${state.next.id}`;
+  $('#page-next-label').textContent = state.current.nextLabel;
+  $('#page-next').setAttribute('aria-label', `${state.current.nextLabel} — ${state.next.label}`);
+  document.title = id === 'home' ? personalTitle : `${state.current.label} · Untuk ${config.recipient || 'Sayang'} ♡`;
+  if (id === 'memories') updateAlbum();
+  if (id === 'coupons' && selectedCoupon) requestAnimationFrame(() => scratch.resize());
+  // Focus synchronously so a quick Tab/click right after navigation is never
+  // stolen by a delayed autofocus callback.
+  if (focus && changed) $(`#${id} .page-title`).focus({ preventScroll: true });
 }
-let scrollQueued = false;
-function updateScrollProgress() {
-  const max = document.documentElement.scrollHeight - window.innerHeight;
-  $('#scroll-progress').style.transform = `scaleX(${max > 0 ? Math.min(1, window.scrollY / max) : 0})`;
-  if (window.scrollY < 250) $$('.main-nav a').forEach((link) => { link.classList.remove('is-active'); link.removeAttribute('aria-current'); });
-  scrollQueued = false;
+
+function navigateTo(id, replace = false) {
+  const target = PAGES.some((page) => page.id === id) ? id : 'home';
+  if (pageFromHash(location.hash) === target && activePage === target) {
+    if ($('#chapters-dialog').open) $('#chapters-dialog').close();
+    return;
+  }
+  if (replace) history.replaceState(null, '', `#${target}`);
+  else location.hash = target;
+  showPage(target, { backward: PAGES.findIndex((page) => page.id === target) < activePageIndex });
 }
-window.addEventListener('scroll', () => {
-  if (!scrollQueued) { scrollQueued = true; requestAnimationFrame(updateScrollProgress); }
-}, { passive: true });
-updateScrollProgress();
+
+window.addEventListener('hashchange', () => {
+  const target = pageFromHash(location.hash);
+  // navigateTo already rendered this chapter; don't cancel its entrance animation.
+  if (activePage === target && location.hash === `#${target}`) return;
+  const backward = PAGES.findIndex((page) => page.id === target) < activePageIndex;
+  if (location.hash !== `#${target}`) history.replaceState(null, '', `#${target}`);
+  showPage(target, { backward });
+});
+document.addEventListener('click', (event) => {
+  const link = event.target.closest('a[href^="#"]');
+  if (!link || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const id = pageFromHash(link.getAttribute('href'));
+  if (PAGES.some((page) => page.id === id)) {
+    event.preventDefault();
+    navigateTo(id);
+  }
+});
+$('#page-prev').addEventListener('click', () => {
+  const previous = navigationState(activePage).previous;
+  if (previous) navigateTo(previous.id);
+});
+$('#chapter-toggle').addEventListener('click', () => openDialog($('#chapters-dialog')));
+$('.skip-link').addEventListener('click', (event) => {
+  event.preventDefault();
+  $(`#${activePage} .page-title`).focus();
+});
+// Arrow keys turn pages only when focus is not inside an interactive control.
+document.addEventListener('keydown', (event) => {
+  if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || $('dialog[open]')) return;
+  if (event.target.closest('button, a, input, textarea, select, video, canvas, [role="tab"]')) return;
+  if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+    const nextIndex = activePageIndex + (event.key === 'ArrowRight' ? 1 : -1);
+    if (nextIndex >= 0 && nextIndex < PAGES.length) { event.preventDefault(); navigateTo(PAGES[nextIndex].id); }
+  }
+});
+
+// A small extra interaction on the cover.
+const erenMessages = [
+  ['Bikin kamu senyum.', 'Harus berhasil.'],
+  ['Kuenya buat kamu.', 'Aku juga nggak rebutan.'],
+  ['Hari ini tugas kamu:', 'bahagia. Aku bantu.'],
+  ['Misi tambahan:', 'ingetin kamu, kamu disayang.'],
+];
+let erenMessageIndex = 0;
+$('#eren-mission').addEventListener('click', () => {
+  erenMessageIndex = (erenMessageIndex + 1) % erenMessages.length;
+  const [line, emphasis] = erenMessages[erenMessageIndex];
+  $('#eren-message').replaceChildren(document.createTextNode(line), document.createElement('br'));
+  const strong = document.createElement('strong');
+  strong.textContent = emphasis;
+  $('#eren-message').append(strong);
+  $('#eren-mission').classList.remove('is-changing');
+  void $('#eren-mission').offsetWidth;
+  $('#eren-mission').classList.add('is-changing');
+  const rect = $('#eren-mission').getBoundingClientRect();
+  celebrate({ x: rect.right - 20, y: rect.top, count: 20 });
+});
+$('#eren-message').setAttribute('aria-live', 'polite');
 
 // Native dialogs provide focus trapping, Escape to close, and focus restoration.
 function openDialog(dialog) {
@@ -179,6 +293,48 @@ renderReason(false);
 // Gallery: real files when supplied, original illustrations while waiting.
 const localPhotoURLs = new Map();
 let lightboxIndex = 0;
+let albumIndex = 0;
+let albumDotCount = -1;
+const albumPhone = window.matchMedia('(max-width: 700px)');
+const albumPageSize = () => albumPhone.matches ? 1 : 2;
+let albumSizeShown = albumPageSize();
+function updateAlbum() {
+  const size = albumPageSize();
+  albumSizeShown = size;
+  const spreads = Math.max(1, Math.ceil(photos.length / size));
+  albumIndex = Math.min(albumIndex, spreads - 1);
+  const start = albumIndex * size;
+  const end = Math.min(start + size, photos.length);
+  $$('.photo-card', $('#photo-grid')).forEach((card, index) => { card.hidden = index < start || index >= end; });
+  $('#album-count').textContent = photos.length ? `${String(start + 1).padStart(2, '0')}${end > start + 1 ? `–${String(end).padStart(2, '0')}` : ''} / ${String(photos.length).padStart(2, '0')}` : '00 / 00';
+  $('#album-prev').disabled = spreads < 2;
+  $('#album-next').disabled = spreads < 2;
+  if (albumDotCount !== spreads) {
+    albumDotCount = spreads;
+    $('#album-dots').replaceChildren();
+    for (let index = 0; index < spreads; index++) {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = 'album-dot';
+      dot.setAttribute('aria-label', `Lembar album ${index + 1}`);
+      dot.addEventListener('click', () => { albumIndex = index; updateAlbum(); });
+      $('#album-dots').append(dot);
+    }
+  }
+  $$('.album-dot').forEach((dot, index) => dot.setAttribute('aria-pressed', String(index === albumIndex)));
+}
+function moveAlbum(direction) {
+  const spreads = Math.max(1, Math.ceil(photos.length / albumPageSize()));
+  albumIndex = (albumIndex + direction + spreads) % spreads;
+  updateAlbum();
+}
+$('#album-prev').addEventListener('click', () => moveAlbum(-1));
+$('#album-next').addEventListener('click', () => moveAlbum(1));
+albumPhone.addEventListener('change', () => {
+  const firstPhoto = albumIndex * albumSizeShown;
+  albumIndex = Math.floor(firstPhoto / albumPageSize());
+  updateAlbum();
+});
 function photoSource(photo) { return photo.localSrc || mediaURL(photo.src) || photo.fallbackSrc || placeholderImage(photo.placeholder, photo.color); }
 function renderGallery() {
   const grid = $('#photo-grid');
@@ -189,7 +345,7 @@ function renderGallery() {
     card.type = 'button';
     card.className = 'photo-card';
     card.style.setProperty('--rotation', `${rotations[index % rotations.length]}deg`);
-    card.setAttribute('aria-label', `Buka foto ${index + 1}: ${photo.caption || 'Cerita kita'}`);
+    card.setAttribute('aria-label', `Buka foto ${index + 1}: ${photo.caption || 'Cerita kita.'} — ${photo.date || `CERITA ${String(index + 1).padStart(2, '0')}`}`);
     const frame = document.createElement('span');
     frame.className = 'photo-image';
     const image = document.createElement('img');
@@ -234,6 +390,7 @@ function renderGallery() {
   }
   $('#preview-photos').disabled = photos.length === 0;
   $('#reset-photos').hidden = localPhotoURLs.size === 0;
+  updateAlbum();
 }
 function renderLightbox() {
   const photo = photos[lightboxIndex];
@@ -286,7 +443,7 @@ $('#photo-input').addEventListener('change', (event) => {
   });
   renderGallery();
   if (accepted.length) {
-    $('#gallery-note').textContent = `${accepted.length} foto lokal terpasang. Mau permanen? Masukkan file lewat VS Code seperti panduan di bawah.`;
+    $('#gallery-note').textContent = `${accepted.length} foto lokal terpasang. Mau permanen? Masukkan file lewat VS Code; caranya ada di “Isi foto & video” pada footer.`;
     const rejected = selected.length - accepted.length;
     showToast(`${accepted.length} foto tampil di pratinjau. Tidak diunggah.${rejected ? ` ${rejected} dilewati: maksimal ${photos.length} foto, 15 MB per file.` : ' Akan hilang saat halaman dimuat ulang.'}`);
   } else showToast('Pilih JPG, PNG, WebP, GIF, atau AVIF, maksimal 15 MB per foto.');
@@ -372,7 +529,7 @@ const music = new BirthdayMusic(mediaURL(config.music?.src));
 let musicBusy = false;
 function updateMusicButton() {
   $('#music-toggle').setAttribute('aria-pressed', String(music.playing));
-  $('#music-toggle').setAttribute('aria-label', music.playing ? 'Matikan musik' : 'Putar musik lembut');
+  $('#music-toggle').setAttribute('aria-label', music.playing ? 'Musik menyala — matikan musik' : 'Putar musik lembut');
   $('#music-label').textContent = music.playing ? 'Musik menyala' : 'Putar musik';
   $('#music-toggle').title = music.playing ? `${config.music?.title || 'Melodi untukmu'} — klik untuk mematikan` : 'Putar melodi lembut. Musik tidak dimulai otomatis.';
 }
@@ -415,6 +572,7 @@ function finishWish() {
   if (wishComplete) return;
   wishComplete = true;
   $('#wish-message').hidden = false;
+  $('#wish-placeholder').hidden = true;
   $('#wish-instruction').textContent = 'Satu harapan kecil, diaminkan oleh semesta.';
   $('#cake-hint').textContent = 'Semoga yang baik-baik segera menemukanmu.';
   $('#blow-candles').innerHTML = `${icon('rotate')} Nyalakan lilin lagi`;
@@ -433,6 +591,7 @@ $('#blow-candles').addEventListener('click', () => {
       candle.setAttribute('aria-label', `Tiup lilin ${index + 1}`);
     });
     $('#wish-message').hidden = true;
+    $('#wish-placeholder').hidden = false;
     $('#wish-instruction').innerHTML = 'Pejamkan mata. Simpan satu harapan.<br />Kalau sudah, tiup lilinnya, ya.';
     $('#cake-hint').textContent = 'Atau klik lilinnya satu per satu.';
     $('#blow-candles').innerHTML = `${icon('wind')} Tiup lilin & buat harapan`;
@@ -446,7 +605,7 @@ $('#blow-candles').addEventListener('click', () => {
   }, reducedMotion.matches ? 0 : index * 220));
 });
 
-$('#open-letter').addEventListener('click', () => { openDialog($('#letter-dialog')); markGiftOpened('letter'); });
+['#open-letter', '#letter-envelope-button'].forEach((selector) => $(selector).addEventListener('click', () => { openDialog($('#letter-dialog')); markGiftOpened('letter'); }));
 $('#save-letter').addEventListener('click', () => {
   const text = [config.letter?.greeting || 'Untukmu,', '', ...letterParagraphs.flatMap((paragraph) => [paragraph, '']), config.letter?.closing || 'Dengan sayang,', config.sender || 'Aku'].join('\n');
   downloadBlob(new Blob(['\uFEFF', text], { type: 'text/plain;charset=utf-8' }), `surat-untuk-${fileStem(config.recipient)}.txt`);
@@ -470,7 +629,7 @@ const scratch = new ScratchCard($('#scratch-canvas'), () => {
   if (document.activeElement === $('#accessible-reveal')) $('#save-coupon').focus({ preventScroll: true });
   $('#scratch-status').textContent = 'Kupon terbuka! Simpan, lalu tukar saat kita bertemu. ♡';
   markGiftOpened('coupon');
-  celebrate({ container: $('#coupon-dialog'), count: 55 });
+  celebrate({ container: $('.coupon-page-game'), count: 55 });
 });
 coupons.forEach((coupon, index) => {
   const button = document.createElement('button');
@@ -489,6 +648,7 @@ coupons.forEach((coupon, index) => {
     $('#ticket-code').textContent = coupon.code || `LOVE-${String(index + 1).padStart(3, '0')}`;
     $('#ticket-icon').innerHTML = icon(coupon.icon);
     $('#scratch-area').hidden = false;
+    $('#coupon-empty').hidden = true;
     $('#scratch-instruction').hidden = false;
     $('#accessible-reveal').hidden = false;
     $('#save-coupon').hidden = true;
@@ -500,7 +660,6 @@ coupons.forEach((coupon, index) => {
 if (!coupons.length) {
   $('#coupon-choices').textContent = 'Belum ada kupon. Tambahkan kejutan kecil di config.js.';
 }
-$('#open-coupons').addEventListener('click', () => openDialog($('#coupon-dialog')));
 $('#accessible-reveal').addEventListener('click', () => scratch.reveal());
 function wrapCanvasText(context, text, x, y, maxWidth, lineHeight) {
   let line = '';
@@ -585,8 +744,22 @@ $$('[data-setup-tab]').forEach((tab, index, tabs) => {
   });
 });
 $('#open-setup').addEventListener('click', () => { selectSetupTab('photos'); openDialog($('#setup-dialog')); });
-$('#setup-photo-preview').addEventListener('click', () => { $('#setup-dialog').close(); $('#photo-input').click(); });
-$('#setup-video-preview').addEventListener('click', () => { $('#setup-dialog').close(); $('#video-input').click(); });
+$('#setup-photo-preview').addEventListener('click', () => { $('#setup-dialog').close(); navigateTo('memories'); $('#photo-input').click(); });
+$('#setup-video-preview').addEventListener('click', () => { $('#setup-dialog').close(); navigateTo('film'); $('#video-input').click(); });
+
+let finalHugs = 0;
+$('#final-hug').addEventListener('click', () => {
+  finalHugs++;
+  const rect = $('#final-hug').getBoundingClientRect();
+  celebrate({ x: rect.left + rect.width / 2, y: rect.top, count: 85 });
+  $('#hug-note').textContent = finalHugs === 1 ? 'Pelukan sampai. Rasanya pulang. ♡' : `${finalHugs} pelukan terkirim. Buat kamu, nggak akan kehabisan.`;
+  $('#final-hug').innerHTML = `${icon('heart')} Peluk sekali lagi`;
+});
+
+// Initialize the requested chapter only after all interactive state is ready.
+const initialPage = pageFromHash(location.hash);
+if (location.hash !== `#${initialPage}`) history.replaceState(null, '', `#${initialPage}`);
+showPage(initialPage, { focus: false });
 
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
