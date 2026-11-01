@@ -42,15 +42,18 @@ Tidak perlu deploy ke Vercel dulu. Semua bisa dites di komputer sendiri.
    Proyek ini memakai Vite, jadi jalankan npm run dev.
 
    CARA MEMBUKA HADIAH
-   Website sekarang terdiri dari 8 halaman, bukan scroll panjang:
-     1. Pembuka: klik misi Eren.
-     2. Alasan sayang: balik kartu, simpan favorit.
-     3. Album: balik lembar foto, klik untuk memperbesar.
-     4. Film: putar video kalian.
-     5. Harapan: tiup lilin.
+   Website sekarang terdiri dari 8 halaman + Misi Rahasia Eren:
+     1. Pembuka: klik misi Eren atau tombol 0/6 di header.
+     2. Alasan sayang: balik kartu 3D, baca pesan rahasia, simpan favorit.
+     3. Album: perbesar foto, balik polaroid, baca catatan rahasia.
+     4. Film: sobek tiket bioskop, lalu putar video kalian.
+     5. Harapan: tulis harapan privat (opsional), tiup lilin.
      6. Surat: klik amplop, baca dan simpan surat.
      7. Kupon: pilih, gosok, dan unduh kupon.
-     8. Penutup: kirim pelukan atau baca ulang.
+     8. Penutup: kumpulkan 6 stempel, buka hadiah terakhir, unduh Birthday Pass.
+
+   Enam stempel bersifat opsional. Semua halaman tetap bisa dibuka.
+   Progres misi dan harapan privat hanya tersimpan di browser perangkat ini.
 
    Gunakan Kembali/Lanjut atau tombol Halaman untuk berpindah.
    Jangan scroll untuk mencari bagian berikutnya: tiap halaman berdiri sendiri.

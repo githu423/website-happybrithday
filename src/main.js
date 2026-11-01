@@ -6,6 +6,8 @@ import { placeholderImage } from './illustrations.js';
 import { BirthdayMusic } from './audio.js';
 import { celebrate } from './celebrations.js';
 import { ScratchCard } from './scratch.js';
+import { createMission } from './mission.js';
+import './creative.css';
 
 const config = window.BIRTHDAY_CONFIG;
 if (!config || !Array.isArray(config.photos) || !Array.isArray(config.reasons) || !Array.isArray(config.coupons)) {
@@ -69,6 +71,14 @@ letterParagraphs.forEach((text) => {
 $('#year').textContent = new Date().getFullYear();
 hydrateIcons();
 
+const mission = createMission({ config, storage, showToast, celebrate, openDialog, downloadBlob });
+let countdownTimers = [];
+function clearCountdown() {
+  countdownTimers.forEach(clearTimeout);
+  countdownTimers = [];
+  $('#film-countdown').hidden = true;
+}
+
 // One chapter at a time. Hash routes support direct links and browser Back/Forward.
 // Personalization and object-URL previews survive chapter changes (no reload).
 const personalTitle = document.title;
@@ -100,6 +110,7 @@ function showPage(id, { focus = true, backward = false } = {}) {
   const changed = activePage !== id;
   if (changed && activePage === 'film') {
     resumeMusicAfterVideo = false;
+    clearCountdown();
     video.pause();
   }
   if (changed) {
@@ -221,6 +232,7 @@ $('#eren-message').setAttribute('aria-live', 'polite');
 // Native dialogs provide focus trapping, Escape to close, and focus restoration.
 function openDialog(dialog) {
   if (dialog.open) return;
+  clearCountdown();
   if (!video.hidden) video.pause();
   dialog.showModal();
   if (dialog.id === 'setup-dialog') $('[role="tab"][aria-selected="true"]', dialog).focus({ preventScroll: true });
@@ -236,6 +248,20 @@ $$('dialog').forEach((dialog) => {
 
 // A small deck of reasons; favorites stay on this device only.
 let reasonIndex = 0;
+let reasonFlipped = false;
+function setReasonFlipped(flipped) {
+  reasonFlipped = flipped;
+  $('#reason-card').classList.toggle('is-flipped', flipped);
+  $('#reason-flip').setAttribute('aria-pressed', String(flipped));
+  $('#reason-flip').innerHTML = flipped ? `${icon('rotate')} Lihat depan` : `${icon('rotate')} Balik kartu`;
+  $('.reason-front').setAttribute('aria-hidden', String(flipped));
+  $('.reason-back').setAttribute('aria-hidden', String(!flipped));
+  $('#reason-like').tabIndex = flipped ? -1 : 0;
+}
+$('#reason-flip').addEventListener('click', () => {
+  setReasonFlipped(!reasonFlipped);
+  if (reasonFlipped) mission.collect('reasons');
+});
 const savedLikes = storage.get('favorite-reasons', []);
 const likedReasons = new Set(Array.isArray(savedLikes) ? savedLikes.filter((title) => typeof title === 'string') : []);
 function updateReasonLike() {
@@ -255,7 +281,9 @@ function renderReason(animate = true) {
   }
   $('#reason-title').textContent = reason.title || 'Kamu, ya kamu.';
   $('#reason-text').textContent = reason.text || '';
+  $('#reason-secret').textContent = reason.secret || 'Ada satu hal lagi: aku bersyukur kamu ada.';
   $('#reason-icon').innerHTML = icon(reason.icon);
+  setReasonFlipped(false);
   $('#reason-counter').textContent = `${String(reasonIndex + 1).padStart(2, '0')} / ${String(reasons.length).padStart(2, '0')}`;
   $$('.reason-dot').forEach((dot, index) => dot.setAttribute('aria-pressed', String(index === reasonIndex)));
   updateReasonLike();
@@ -392,9 +420,24 @@ function renderGallery() {
   $('#reset-photos').hidden = localPhotoURLs.size === 0;
   updateAlbum();
 }
+let photoFlipped = false;
+function setPhotoFlipped(flipped) {
+  photoFlipped = flipped;
+  $('#polaroid-flip').classList.toggle('is-flipped', flipped);
+  $('#photo-flip').setAttribute('aria-pressed', String(flipped));
+  $('#photo-flip').innerHTML = flipped ? `${icon('rotate')} Lihat foto` : `${icon('rotate')} Balik polaroid`;
+  $('.polaroid-front').setAttribute('aria-hidden', String(flipped));
+  $('.polaroid-back').setAttribute('aria-hidden', String(!flipped));
+}
+$('#photo-flip').addEventListener('click', () => {
+  setPhotoFlipped(!photoFlipped);
+  if (photoFlipped) mission.collect('memories');
+});
 function renderLightbox() {
   const photo = photos[lightboxIndex];
   if (!photo) return;
+  setPhotoFlipped(false);
+  $('#photo-secret').textContent = photo.secret || 'Foto ini belum punya catatan. Tapi setiap momen bersamamu layak disimpan.';
   const image = document.createElement('img');
   image.className = !photo.src && !photo.localSrc || photo.fallbackSrc ? 'placeholder-image' : '';
   image.src = photoSource(photo);
@@ -484,10 +527,32 @@ function setVideoSource(source, local = false) {
   if (local) $('#change-video').innerHTML = `${icon('upload')} Ganti video lokal`;
 }
 if (mediaURL(config.video?.src)) setVideoSource(mediaURL(config.video.src));
+function startFilmCountdown(done) {
+  clearCountdown();
+  if (reducedMotion.matches) { done(); return; }
+  const overlay = $('#film-countdown');
+  overlay.hidden = false;
+  let count = 3;
+  overlay.textContent = count;
+  const tick = () => {
+    count -= 1;
+    if (count > 0) { overlay.textContent = count; countdownTimers.push(setTimeout(tick, 650)); }
+    else { overlay.hidden = true; done(); }
+  };
+  countdownTimers.push(setTimeout(tick, 650));
+}
+$('#tear-ticket').addEventListener('click', () => {
+  const torn = $('#cinema-ticket').classList.toggle('is-torn');
+  $('#tear-ticket').setAttribute('aria-pressed', String(torn));
+  $('#tear-ticket').innerHTML = torn ? 'TIKET<br />SAH ✓' : 'SOBEK<br />TIKET';
+  if (torn) { mission.collect('film'); showToast('Tiket disobek. Kursi sebelahmu sudah aku pesan. ♡'); }
+});
 $('#film-play').addEventListener('click', async () => {
   if (!video.src) { selectSetupTab('video'); openDialog($('#setup-dialog')); return; }
-  try { await video.play(); }
-  catch (error) { if (error.name !== 'AbortError') showToast('Tekan tombol play pada video. Kalau masih gagal, coba format MP4 (H.264).'); }
+  startFilmCountdown(async () => {
+    try { await video.play(); }
+    catch (error) { if (error.name !== 'AbortError') showToast('Tekan tombol play pada video. Kalau masih gagal, coba format MP4 (H.264).'); }
+  });
 });
 video.addEventListener('play', () => {
   $('#film-play').hidden = true;
@@ -562,6 +627,12 @@ updateGiftProgress();
 const candles = $$('.candle');
 let wishComplete = false;
 let blowing = false;
+const privateWish = $('#private-wish');
+privateWish.value = typeof storage.get('private-wish', '') === 'string' ? storage.get('private-wish', '') : '';
+privateWish.addEventListener('input', () => {
+  storage.set('private-wish', privateWish.value.trim());
+  mission.renderPrivateStar();
+});
 function extinguish(candle) {
   candle.classList.add('is-out');
   candle.setAttribute('aria-pressed', 'true');
@@ -577,6 +648,8 @@ function finishWish() {
   $('#cake-hint').textContent = 'Semoga yang baik-baik segera menemukanmu.';
   $('#blow-candles').innerHTML = `${icon('rotate')} Nyalakan lilin lagi`;
   markGiftOpened('wish');
+  mission.collect('wish');
+  mission.renderPrivateStar();
   const rect = $('#cake-scene').getBoundingClientRect();
   celebrate({ x: rect.left + rect.width / 2, y: rect.top + rect.height * 0.4 });
 }
@@ -605,7 +678,12 @@ $('#blow-candles').addEventListener('click', () => {
   }, reducedMotion.matches ? 0 : index * 220));
 });
 
-['#open-letter', '#letter-envelope-button'].forEach((selector) => $(selector).addEventListener('click', () => { openDialog($('#letter-dialog')); markGiftOpened('letter'); }));
+['#open-letter', '#letter-envelope-button'].forEach((selector) => $(selector).addEventListener('click', () => {
+  $('#letter-envelope-button').classList.add('is-opened');
+  openDialog($('#letter-dialog'));
+  markGiftOpened('letter');
+  mission.collect('letter');
+}));
 $('#save-letter').addEventListener('click', () => {
   const text = [config.letter?.greeting || 'Untukmu,', '', ...letterParagraphs.flatMap((paragraph) => [paragraph, '']), config.letter?.closing || 'Dengan sayang,', config.sender || 'Aku'].join('\n');
   downloadBlob(new Blob(['\uFEFF', text], { type: 'text/plain;charset=utf-8' }), `surat-untuk-${fileStem(config.recipient)}.txt`);
@@ -629,6 +707,7 @@ const scratch = new ScratchCard($('#scratch-canvas'), () => {
   if (document.activeElement === $('#accessible-reveal')) $('#save-coupon').focus({ preventScroll: true });
   $('#scratch-status').textContent = 'Kupon terbuka! Simpan, lalu tukar saat kita bertemu. ♡';
   markGiftOpened('coupon');
+  mission.collect('coupons');
   celebrate({ container: $('.coupon-page-game'), count: 55 });
 });
 coupons.forEach((coupon, index) => {

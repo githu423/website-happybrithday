@@ -2,7 +2,7 @@
 
 **Sebuah hadiah kecil. Untuk rasa yang besar.**
 
-Website kejutan ulang tahun berbahasa Indonesia untuk pasangan: scrapbook romantis, lucu, dan manis dengan ilustrasi Eren Yeager yang membawa kue. Dikemas dalam **8 halaman terpisah, bukan satu halaman panjang yang di-scroll**. Setiap halaman punya interaksi sendiri, dengan tombol Kembali/Lanjut dan daftar halaman seperti membuka buku. Dibangun dengan HTML, CSS, JavaScript dan Vite. Tanpa database, tanpa akun pasangan, tanpa layanan upload, dan tanpa autoplay musik.
+Website kejutan ulang tahun berbahasa Indonesia untuk pasangan: scrapbook romantis, lucu, dan manis dengan ilustrasi Eren Yeager yang membawa kue. Dikemas dalam **8 halaman terpisah, bukan satu halaman panjang yang di-scroll**, lalu dibungkus satu permainan kecil: **Misi Rahasia Eren**. Setiap halaman punya interaksi sendiri, menyimpan pesan rahasia, dan bisa memberi satu stempel. Kumpulkan enam stempel untuk membuka hadiah terakhir di halaman penutup. Navigasi tidak pernah dikunci; misi ini lapisan bermain, bukan syarat untuk menjelajah. Dibangun dengan HTML, CSS, JavaScript dan Vite. Tanpa database, tanpa akun pasangan, tanpa layanan upload, dan tanpa autoplay musik.
 
 > Foto dan video pasangan **belum diisi sesuai permintaan**. Bingkai berisi ilustrasi penanda yang dibuat khusus, bukan foto pasangan orang lain. Ganti dengan momen kalian sebelum hadiahnya dikirim.
 
@@ -27,20 +27,35 @@ npm test          # pemeriksaan konfigurasi dan aset
 
 | Halaman | Alamat | Interaksi |
 | --- | --- | --- |
-| 01 · Pembuka | `/#home` | Klik catatan misi Eren untuk pesan kejutan |
-| 02 · Alasan sayang | `/#reasons` | Balik kartu dan simpan alasan favorit |
-| 03 · Album kita | `/#memories` | Balik lembar album, perbesar foto, coba foto lokal |
-| 04 · Film kita | `/#film` | Putar video kenangan dari file sendiri |
-| 05 · Harapan | `/#wish` | Tiup tiga lilin dan buka harapan |
-| 06 · Surat cinta | `/#letter` | Buka amplop, baca, simpan surat, peluk balik |
-| 07 · Kupon sayang | `/#coupons` | Pilih kupon, gosok, dan unduh PNG |
-| 08 · Penutup | `/#closing` | Kirim pelukan, lihat progres, atau baca ulang |
+| 01 · Pembuka | `/#home` | Klik catatan misi Eren, buka briefing misi rahasia |
+| 02 · Alasan sayang | `/#reasons` | Balik kartu 3D untuk pesan rahasia, simpan favorit → stempel |
+| 03 · Album kita | `/#memories` | Perbesar foto, balik polaroid untuk catatan rahasia → stempel |
+| 04 · Film kita | `/#film` | Sobek tiket bioskop, hitung mundur 3-2-1, putar video → stempel |
+| 05 · Harapan | `/#wish` | Tulis harapan privat, tiup tiga lilin, harapan jadi bintang → stempel |
+| 06 · Surat cinta | `/#letter` | Buka segel amplop, baca, simpan surat, peluk balik → stempel |
+| 07 · Kupon sayang | `/#coupons` | Pilih kupon, gosok, dan unduh PNG → stempel |
+| 08 · Penutup | `/#closing` | Lihat langit stempel, buka hadiah terakhir, unduh Birthday Pass |
 
 Gunakan **Kembali / Lanjut**, titik halaman di bawah, atau tombol **Halaman** di header. Di desktop, menu atas juga bisa dipakai. Tombol panah kiri/kanan pada keyboard membalik halaman ketika fokus tidak sedang berada pada kontrol interaktif. Link langsung seperti `/#letter` dan tombol Back browser tetap berfungsi. Link lama `/#surprises` diarahkan ke Harapan.
 
 Hanya satu halaman yang tampil pada satu waktu. Tidak ada scroll panjang antarbagian; pada layar yang sangat pendek atau teks personal yang panjang, isi halaman boleh di-scroll secara terpisah agar tombol dan pesan tidak terpotong. Header dan navigasi tetap terlihat. Foto/video pratinjau tetap tersimpan saat berpindah halaman, tetapi hilang saat browser dimuat ulang. Video otomatis dijeda saat meninggalkan halaman Film.
 
 Ini satu aplikasi Vite dengan rute hash, bukan delapan file HTML terpisah. Tidak diperlukan konfigurasi rewrite tambahan di Vercel. Urutan dan label halaman ada di `src/pages.js`; jangan mengubah ID tanpa menyesuaikan section di `index.html`.
+
+## Misi Rahasia Eren
+
+Tombol misi di header (`0/6`) membuka briefing Eren. Ada enam stempel opsional:
+
+1. Balik satu kartu alasan di halaman 02.
+2. Balik satu polaroid di lightbox album, halaman 03.
+3. Sobek tiket bioskop di halaman 04.
+4. Tiup lilin di halaman 05.
+5. Buka segel surat di halaman 06.
+6. Gosok/buka satu kupon di halaman 07.
+
+Stempel tersimpan di `localStorage` perangkat (`untukmu:mission-stamps`), jadi progres tidak hilang saat refresh. Tombol **Ulangi misi dari awal** di briefing menghapus stempel tanpa menghapus surat, kupon, atau harapan. Setelah enam stempel terkumpul, halaman penutup membuka **hadiah terakhir**: pesan khusus Eren dan **Birthday Pass** PNG 1200×760 yang bisa diunduh. Semua halaman tetap bisa dibuka sejak awal, meskipun belum ada stempel.
+
+Harapan privat di halaman 05 juga hanya disimpan di perangkat (`untukmu:private-wish`). Kalau diisi, ia muncul sebagai satu bintang kecil di langit penutup. Tidak ada teks harapan yang dikirim ke server, analytics, atau pihak ketiga.
 
 ## 1. Ubah nama dan pesan dulu
 
@@ -51,13 +66,14 @@ Buka **`public/config.js`**. Ini pusat semua isi personal:
 | `recipient` | Nama / panggilan pasangan, misalnya `Nadia` |
 | `sender` | Nama kamu, misalnya `Dimas` |
 | `hero` | Judul dan pesan pembuka |
-| `reasons` | Kartu alasan-alasan sayang |
-| `photos` | Foto, caption, dan tanggal cerita |
+| `reasons` | Kartu alasan sayang; `secret` adalah pesan di balik kartu |
+| `photos` | Foto, caption, tanggal; `secret` adalah catatan di balik polaroid |
 | `video` | Video dan sampulnya |
 | `music` | Lagu kalian, opsional |
 | `letter` | Isi surat lengkap |
 | `wish` | Harapan setelah lilin ditiup |
 | `coupons` | Kupon pelukan, kencan, atau kejutan lain |
+| `mission` | Briefing Eren, hadiah terakhir, dan catatan Birthday Pass |
 | `footer` | Kalimat penutup |
 
 Contoh:
@@ -86,6 +102,7 @@ Ubah teks di antara tanda kutip. Jangan menghapus koma di akhir baris. Kalau tek
   date: '12 JUNI 2026',
   color: 'rose',
   placeholder: 'first',
+  secret: 'Catatan rahasia di balik polaroid ini.',
 },
 ```
 

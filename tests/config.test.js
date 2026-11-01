@@ -73,3 +73,18 @@ test('hero image is a lightweight, real WebP', () => {
   assert.equal(file.toString('ascii', 8, 12), 'WEBP');
   assert.ok(file.byteLength < 600_000, 'Hero should stay under 600 KB');
 });
+
+test('secret mission fields are optional but valid when present', () => {
+  if (config.mission) {
+    for (const field of ['title', 'intro', 'rewardTitle', 'reward', 'passNote']) {
+      assert.equal(typeof config.mission[field], 'string');
+      assert.ok(config.mission[field].trim().length > 0, `mission.${field} cannot be empty`);
+    }
+  }
+  for (const reason of config.reasons) {
+    if ('secret' in reason) assert.equal(typeof reason.secret, 'string');
+  }
+  for (const photo of config.photos) {
+    if ('secret' in photo) assert.equal(typeof photo.secret, 'string');
+  }
+});

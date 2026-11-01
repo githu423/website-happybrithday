@@ -360,3 +360,123 @@ test('phone, tablet, and desktop keep every page within the viewport', async ({ 
     }
   }
 });
+
+test('Eren mission briefing lists six optional stamps and can reset', async ({ page }) => {
+  await expect(page.locator('#mission-count')).toHaveText('0/6');
+  await page.locator('#mission-brief').click();
+  await expect(page.locator('#mission-dialog')).toBeVisible();
+  await expect(page.locator('.mission-item')).toHaveCount(6);
+  await expect(page.locator('.mission-item.is-done')).toHaveCount(0);
+  await page.locator('#mission-reset').click();
+  await expect(page.locator('#mission-count')).toHaveText('0/6');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#mission-dialog')).toBeHidden();
+  // Navigation is never locked, even with zero stamps.
+  await openPage(page, 'closing');
+  await expect(page.locator('#open-reward')).toBeDisabled();
+  await openPage(page, 'film');
+  await expect(chapter(page, 'film')).toBeVisible();
+});
+
+test('reason and polaroid flips reveal secret notes and collect stamps', async ({ page }) => {
+  await openPage(page, 'reasons');
+  await page.locator('#reason-flip').click();
+  await expect(page.locator('#reason-card')).toHaveClass(/is-flipped/);
+  await expect(page.locator('#reason-secret')).not.toBeEmpty();
+  await expect(page.locator('#mission-count')).toHaveText('1/6');
+  await page.locator('#reason-next').click();
+  await expect(page.locator('#reason-card')).not.toHaveClass(/is-flipped/);
+  await openPage(page, 'memories');
+  await page.locator('.photo-card:visible').first().click();
+  await expect(page.locator('#gallery-dialog')).toBeVisible();
+  await page.locator('#photo-flip').click();
+  await expect(page.locator('#polaroid-flip')).toHaveClass(/is-flipped/);
+  await expect(page.locator('#photo-secret')).not.toBeEmpty();
+  await expect(page.locator('#mission-count')).toHaveText('2/6');
+  await page.locator('#lightbox-next').click();
+  await expect(page.locator('#polaroid-flip')).not.toHaveClass(/is-flipped/);
+  await page.keyboard.press('Escape');
+});
+
+test('cinema ticket tears and the private wish stays on this device', async ({ page }) => {
+  let uploads = 0;
+  page.on('request', (request) => { if (request.method() === 'POST') uploads++; });
+  await openPage(page, 'film');
+  await page.locator('#tear-ticket').click();
+  await expect(page.locator('#cinema-ticket')).toHaveClass(/is-torn/);
+  await expect(page.locator('#mission-count')).toHaveText('1/6');
+  await openPage(page, 'wish');
+  await page.locator('#private-wish').fill('Semoga kita selalu pulang ke satu sama lain.');
+  await page.locator('#blow-candles').click();
+  await expect(page.locator('#wish-message')).toBeVisible();
+  await expect(page.locator('#mission-count')).toHaveText('2/6');
+  await page.reload();
+  await expect(chapter(page, 'wish')).toBeVisible();
+  await expect(page.locator('#private-wish')).toHaveValue('Semoga kita selalu pulang ke satu sama lain.');
+  await openPage(page, 'closing');
+  await expect(page.locator('#private-sky-star')).toHaveClass(/is-lit/);
+  expect(uploads).toBe(0);
+});
+
+test('all six stamps unlock the final reward and a downloadable birthday pass', async ({ page }) => {
+  await openPage(page, 'reasons');
+  await page.locator('#reason-flip').click();
+  await openPage(page, 'memories');
+  await page.locator('.photo-card:visible').first().click();
+  await page.locator('#photo-flip').click();
+  await page.keyboard.press('Escape');
+  await openPage(page, 'film');
+  await page.locator('#tear-ticket').click();
+  await openPage(page, 'wish');
+  await page.locator('#blow-candles').click();
+  await expect(page.locator('#wish-message')).toBeVisible();
+  await openPage(page, 'letter');
+  await page.locator('#open-letter').click();
+  await expect(page.locator('#letter-dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await openPage(page, 'coupons');
+  await page.locator('.coupon-choice').first().click();
+  await page.locator('#accessible-reveal').click();
+  await expect(page.locator('#mission-count')).toHaveText('6/6');
+  await openPage(page, 'closing');
+  await expect(page.locator('.stamp.is-collected')).toHaveCount(6);
+  await expect(page.locator('#open-reward')).toBeEnabled();
+  await page.locator('#open-reward').click();
+  await expect(page.locator('#reward-dialog')).toBeVisible();
+  await expect(page.locator('#reward-text')).not.toBeEmpty();
+  const downloaded = page.waitForEvent('download');
+  await page.locator('#save-pass').click();
+  const download = await downloaded;
+  expect(download.suggestedFilename()).toMatch(/^birthday-pass-.*\.png$/);
+  const image = readFileSync(await download.path());
+  expect(image.toString('hex', 0, 8)).toBe('89504e470d0a1a0a');
+  expect(image.readUInt32BE(16)).toBe(1200);
+  expect(image.readUInt32BE(20)).toBe(760);
+  await page.keyboard.press('Escape');
+  await page.reload();
+  await expect(chapter(page, 'closing')).toBeVisible();
+  await expect(page.locator('#mission-count')).toHaveText('6/6');
+  await expect(page.locator('#open-reward')).toBeEnabled();
+});
+
+test('older config without mission or secret fields still works', async ({ page }) => {
+  await page.route('**/config.js', async (route) => {
+    const response = await route.fetch();
+    let body = await response.text();
+    body = body.replace(/mission:\s*\{[\s\S]*?\},\s*footer:/, 'footer:');
+    body = body.replace(/\s*secret:\s*'[^']*'/g, '');
+    await route.fulfill({ response, body });
+  });
+  await page.reload();
+  await expect(page.locator('#mission-count')).toHaveText('0/6');
+  await openPage(page, 'reasons');
+  await page.locator('#reason-flip').click();
+  await expect(page.locator('#reason-secret')).not.toBeEmpty();
+  await openPage(page, 'memories');
+  await page.locator('.photo-card:visible').first().click();
+  await page.locator('#photo-flip').click();
+  await expect(page.locator('#photo-secret')).not.toBeEmpty();
+  await page.keyboard.press('Escape');
+  await openPage(page, 'closing');
+  await expect(page.locator('#open-reward')).toBeDisabled();
+});
