@@ -1,0 +1,4 @@
+# A personal gift, not a public search result.
+# This is not password protection: anyone with the link can still visit.
+User-agent: *
+Disallow: /

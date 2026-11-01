@@ -1,0 +1,88 @@
+UNTUKMU. — CARA MENCOBA DI VS CODE
+=================================
+
+Tidak perlu deploy ke Vercel dulu. Semua bisa dites di komputer sendiri.
+
+1. PASANG NODE.JS
+   Pasang Node.js versi 22 LTS (minimal 22.12) dari https://nodejs.org/.
+   Versi 20.19+ juga didukung. Jika baru selesai install, tutup lalu buka lagi VS Code.
+   Cek di Terminal VS Code:
+     node --version
+     npm --version
+
+2. BUKA PROYEK
+   Ekstrak ZIP ini terlebih dahulu.
+   Di VS Code: File > Open Folder, pilih folder hasil ekstrak yang berisi package.json.
+   Jangan hanya membuka file index.html satu per satu.
+
+3. JALANKAN WEBSITE
+   Buka Terminal > New Terminal, lalu ketik:
+
+     npm install
+     npm run dev
+
+   Tunggu sampai muncul alamat lokal. Buka:
+     http://localhost:3000
+
+   Gunakan alamat yang tertulis di terminal jika port 3000 sedang dipakai.
+   Biarkan terminal tetap berjalan selama mencoba website.
+   Untuk berhenti: tekan Ctrl+C di terminal.
+
+   PENTING: Jangan buka index.html dengan klik dua kali atau Live Server biasa.
+   Proyek ini memakai Vite, jadi jalankan npm run dev.
+
+4. MASUKKAN ISI PERSONAL
+   Nama, surat, alasan sayang, harapan, dan kupon:
+     public/config.js
+
+   Foto kalian:
+     public/media/photos/
+   Video kalian:
+     public/media/video/
+   Musik sendiri (opsional):
+     public/media/music/
+
+   Setelah menyalin file media, daftarkan path-nya di public/config.js.
+   Contoh path foto: /media/photos/kita.jpg
+   Contoh path video: /media/video/kita.mp4
+   Jangan menulis /public di depan path tersebut.
+   Nama file dan huruf besar/kecil harus sama persis.
+
+   Simpan perubahan dengan Ctrl+S. Browser biasanya memperbarui otomatis;
+   jika belum, refresh browser.
+   Tombol Coba Foto Kamu / Coba Video Lokal hanya pratinjau sementara,
+   bukan upload dan bukan cara menyimpan file ke proyek.
+
+5. TES SEBELUM PUBLISH (OPSIONAL)
+   Cek konfigurasi dan file media:
+     npm test
+
+   Cek versi produksi berhasil dibuat:
+     npm run build
+
+   Lihat hasil build di browser:
+     npm run preview
+
+   Tes interaksi lengkap dengan browser (opsional):
+     npx playwright install chromium
+     npm run test:e2e
+
+6. KALAU TERMINAL WINDOWS MENOLAK NPM
+   Jika muncul error execution policy untuk npm.ps1 di PowerShell,
+   pilih Terminal Command Prompt di VS Code, atau gunakan:
+     npm.cmd install
+     npm.cmd run dev
+   Tidak perlu mematikan keamanan PowerShell.
+
+7. KALAU ADA MASALAH
+   - npm not found: install Node.js, lalu buka ulang VS Code.
+   - Cannot find package.json: buka folder proyek, bukan folder pembungkus ZIP.
+   - Port sudah dipakai: gunakan alamat lain yang muncul di terminal.
+   - Foto/video tidak tampil: cek path dan nama file di config.js.
+   - Video tidak dapat diputar: gunakan MP4 dengan H.264 + AAC.
+
+Panduan lengkap, ukuran media yang disarankan, privasi, dan langkah Vercel:
+  README.md
+
+Belum ada foto/video pasangan yang dimasukkan, sesuai permintaan.
+Bingkai sementara memakai ilustrasi penanda, bukan foto orang lain.

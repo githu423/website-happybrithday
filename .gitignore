@@ -1,0 +1,12 @@
+node_modules/
+.venv/
+dist/
+.vercel/
+.output/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.local
+playwright-report/
+test-results/
