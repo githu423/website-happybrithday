@@ -1,142 +1,308 @@
 <!doctype html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f9f7f2" />
-    <meta name="description" content="Sebuah hadiah ulang tahun dalam delapan halaman. Penuh cerita, kejutan, dan banyak sayang." />
-    <meta name="robots" content="noindex, nofollow" />
-    <meta property="og:title" content="Untukmu, manusia favoritku ♡" />
-    <meta property="og:description" content="Delapan halaman kecil. Satu rasa yang besar. Dibuat khusus untukmu." />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="/media/eren-birthday.webp" />
-    <title>Untukmu, manusia favoritku ♡</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="preload" as="image" href="/media/eren-birthday.webp" />
-    <script src="/config.js"></script>
-    <script type="module" src="/src/main.js"></script>
-  </head>
-  <body>
-    <a class="skip-link" href="#page-content">Langsung ke isi halaman</a>
-    <div class="app-shell">
-      <div class="reading-progress" aria-hidden="true"><span id="reading-progress"></span></div>
-      <header class="site-header">
-        <div class="header-inner container">
-          <a class="brand" href="#home" data-page-link="home" aria-label="Untukmu — kembali ke pembuka"><span class="brand-mark"><i data-icon="mail-heart"></i></span><span>untukmu<span class="brand-dot">.</span></span></a>
-          <nav class="main-nav" aria-label="Navigasi utama">
-            <a href="#home" data-page-link="home">Pembuka</a>
-            <a href="#memories" data-page-link="memories">Cerita kita</a>
-            <a href="#film" data-page-link="film">Film kita</a>
-            <a href="#wish" data-page-link="wish">Kejutanmu <span class="nav-sparkle">✧</span></a>
-          </nav>
-          <div class="header-actions">
-            <button class="mission-toggle" id="mission-toggle" type="button" aria-label="Misi rahasia Eren 0/6 — buka briefing" aria-haspopup="dialog" title="Misi rahasia Eren"><i data-icon="wings"></i><span id="mission-count">0/6</span></button>
-            <button class="chapters-toggle" id="chapter-toggle" type="button" aria-label="Buka daftar halaman" aria-haspopup="dialog"><i data-icon="book"></i><span>Halaman</span></button>
-            <button class="music-button" id="music-toggle" type="button" aria-pressed="false" title="Musik tidak dimulai otomatis;"><span class="music-icon"><i data-icon="music"></i></span><span id="music-label">Putar musik</span><span class="sound-bars" aria-hidden="true"><b></b><b></b><b></b></span></button>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Happy Birthday — Buku Kejutan</title>
+  <meta name="description" content="Buku kejutan ulang tahun kecil, ditulis diam-diam untuk orang paling spesial." />
+  <meta name="theme-color" content="#1b0410" />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%82%3C/text%3E%3C/svg%3E" />
+  <script src="/config.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#book">Lewati ke isi buku</a>
+  <canvas id="petals" aria-hidden="true"></canvas>
+  <div id="hearts" aria-hidden="true"></div>
+  <div id="flash" class="flash" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <button id="music-btn" class="icon-btn" type="button" aria-label="Nyalakan musik" aria-pressed="false" title="Musik latar">🎵</button>
+    <nav class="dots" id="dots" aria-label="Halaman buku"></nav>
+    <button id="help-btn" class="icon-btn" type="button" aria-label="Buka petunjuk" aria-haspopup="dialog" title="Petunjuk">?</button>
+  </header>
+
+  <main class="book" id="book" tabindex="-1">
+    <!-- 0 · Sampul / gerbang -->
+    <section class="page active" id="page-gate" data-page="gate" data-title="Sampul" aria-labelledby="gate-title">
+      <div class="inner center">
+        <div class="rose-big" aria-hidden="true">
+          <div class="rose"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="stem"><i></i><i></i></div>
+        </div>
+        <p class="kicker" id="gate-kicker"></p>
+        <h1 class="display" id="gate-title"></h1>
+        <p class="lead" id="gate-lead"></p>
+        <div class="row">
+          <button id="yes-btn" class="btn big" type="button"></button>
+          <button id="no-btn" class="btn ghost no-btn" type="button"></button>
+        </div>
+        <p id="no-tease" class="hint" aria-live="polite">&nbsp;</p>
+      </div>
+    </section>
+
+    <!-- 1 · Pembuka -->
+    <section class="page" id="page-opening" data-page="opening" data-title="Pembuka" aria-labelledby="opening-title" hidden>
+      <div class="inner center">
+        <p class="kicker" id="opening-kicker"></p>
+        <h1 class="display script" id="opening-title"></h1>
+        <p class="lead" id="opening-lead"></p>
+        <button class="envelope" id="envelope" type="button" aria-label="Buka amplop dan mulai membaca">
+          <span class="env-flap" aria-hidden="true"></span>
+          <span class="env-body" aria-hidden="true"></span>
+          <span class="env-letter" aria-hidden="true">💌</span>
+        </button>
+        <p class="hint" id="opening-hint"></p>
+        <p class="tiny muted" id="opening-psst"></p>
+      </div>
+    </section>
+
+    <!-- 2 · Ucapan -->
+    <section class="page" id="page-greeting" data-page="greeting" data-title="Ucapan" data-task="baca" aria-labelledby="greeting-title" hidden>
+      <div class="inner">
+        <p class="badge">Halaman 1 — Ucapan</p>
+        <h2 class="title" id="greeting-title">Happy <span class="grad">Birthday</span></h2>
+        <div class="typed-wrap"><p id="typed" class="typed"></p><span class="caret" aria-hidden="true"></span></div>
+        <article class="card letter tilt" id="letter-card">
+          <div class="stamp" aria-hidden="true">🎂</div>
+          <p id="letter-greeting"></p>
+          <div id="letter-paragraphs"></div>
+          <p class="sign" id="letter-closing"></p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 3 · Waktu -->
+    <section class="page" id="page-time" data-page="time" data-title="Waktu Kita" aria-labelledby="time-title" hidden>
+      <div class="inner center">
+        <p class="badge">Halaman 2 — Sudah Sejauh Ini</p>
+        <h2 class="title" id="time-title">Waktu bareng <span class="grad">kamu</span></h2>
+        <p class="sub" id="time-sub"></p>
+        <div class="clock" role="timer" aria-live="off">
+          <div class="unit"><b id="c-d">0</b><span>hari</span></div>
+          <div class="unit"><b id="c-h">00</b><span>jam</span></div>
+          <div class="unit"><b id="c-m">00</b><span>menit</span></div>
+          <div class="unit"><b id="c-s">00</b><span>detik</span></div>
+        </div>
+        <div class="facts" id="facts"></div>
+      </div>
+    </section>
+
+    <!-- 4 · Maskot Eren -->
+    <section class="page" id="page-mascot" data-page="mascot" data-title="Eren" data-task="doll" aria-labelledby="mascot-title" hidden>
+      <div class="inner center">
+        <p class="badge">Halaman 3 — Temen Kecil</p>
+        <h2 class="title" id="mascot-title">Ada yang mau <span class="grad">peluk kamu</span></h2>
+        <p class="sub">Namanya <b id="mascot-name">Eren</b>. Dia bawa kue, dan banyak omong.</p>
+        <div class="doll-stage">
+          <button id="doll" class="doll" type="button" aria-label="Colek Eren">
+            <img id="doll-img" src="/media/eren-birthday.webp" alt="" width="220" height="220" />
+            <span class="doll-hat" aria-hidden="true">🎩</span>
+            <span class="doll-bow" aria-hidden="true">🎀</span>
+          </button>
+          <div id="doll-bubble" class="bubble" aria-live="polite"></div>
+        </div>
+        <div class="chips" role="group" aria-label="Ajak Eren main">
+          <button class="chip" type="button" data-act="peluk">🤗 Peluk</button>
+          <button class="chip" type="button" data-act="kasih">🍰 Kasih Kue</button>
+          <button class="chip" type="button" data-act="dandan">🎀 Dandanin</button>
+          <button class="chip" type="button" data-act="rahasia">🤫 Bisikin Rahasia</button>
+        </div>
+        <p class="tiny muted">Ajak main minimal 3 kali ya 👀</p>
+      </div>
+    </section>
+
+    <!-- 5 · Mawar -->
+    <section class="page" id="page-roses" data-page="roses" data-title="Mawar" data-task="rose" aria-labelledby="roses-title" hidden>
+      <div class="inner center">
+        <p class="badge">Halaman 4 — Mawar Merah</p>
+        <h2 class="title" id="roses-title">Buket <span class="grad">mawar kesukaanmu</span></h2>
+        <p class="sub">Petik tiap kuntum — ada pesan yang aku sembunyiin di dalamnya 🌹</p>
+        <div id="bouquet" class="bouquet" role="group" aria-label="Buket mawar"></div>
+        <p id="rose-msg" class="quote" aria-live="polite">—</p>
+        <div class="meter" aria-hidden="true"><i id="rose-bar"></i></div>
+        <p id="rose-count" class="tiny muted">0 / 0 mawar dipetik</p>
+      </div>
+    </section>
+
+    <!-- 6 · Album -->
+    <section class="page" id="page-album" data-page="album" data-title="Album" data-task="album" aria-labelledby="album-title" hidden>
+      <div class="inner center">
+        <p class="badge">Halaman 5 — Frame Kecil</p>
+        <h2 class="title" id="album-title">Album <span class="grad">kecil kita</span></h2>
+        <p class="sub" id="album-sub"></p>
+        <div class="album-grid" id="album-grid"></div>
+        <div class="row">
+          <label class="btn ghost file-label" for="photo-input">Coba foto kamu</label>
+          <input id="photo-input" type="file" accept="image/*" multiple hidden />
+          <button id="reset-photos" class="btn ghost" type="button" hidden>Reset foto</button>
+        </div>
+        <p class="tiny muted" id="album-note">Foto sementara tidak di-upload. Untuk permanen, taruh di public/media/photos/.</p>
+      </div>
+    </section>
+
+    <!-- 7 · Kuis -->
+    <section class="page" id="page-quiz" data-page="quiz" data-title="Kuis" data-task="quiz" aria-labelledby="quiz-title" hidden>
+      <div class="inner center">
+        <p class="badge">Halaman 6 — Kuis Penting</p>
+        <h2 class="title" id="quiz-title">Seberapa <span class="grad">kamu tahu</span>?</h2>
+        <p class="sub">Tenang, semua jawabannya benar. Ini bukan ujian, ini formalitas 😌</p>
+        <div class="card quiz">
+          <p id="q-progress" class="tiny muted"></p>
+          <p id="q-text" class="q"></p>
+          <div id="q-opts" class="opts"></div>
+          <p id="q-feed" class="qfeed" aria-live="polite">&nbsp;</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8 · Isi hati -->
+    <section class="page" id="page-heart" data-page="heart" data-title="Isi Hati" data-task="heart" aria-labelledby="heart-title" hidden>
+      <div class="inner center">
+        <p class="badge">Halaman 7 — Sebelum Kejutan</p>
+        <h2 class="title" id="heart-title">Isi hati <span class="grad">dulu</span></h2>
+        <p class="sub" id="heart-sub"></p>
+        <button id="heart-btn" class="heart-btn" type="button" aria-label="Tahan untuk mengisi hati sampai 100 persen">
+          <svg viewBox="0 0 120 112" width="150" height="140" aria-hidden="true">
+            <defs>
+              <linearGradient id="hg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#ff8fab"/><stop offset="1" stop-color="#ff2e63"/>
+              </linearGradient>
+              <clipPath id="hclip">
+                <path d="M60 104S8 72 8 38C8 19 22 8 37 8c10 0 18 5 23 13 5-8 13-13 23-13 15 0 29 11 29 30 0 34-52 66-52 66z"/>
+              </clipPath>
+            </defs>
+            <path d="M60 104S8 72 8 38C8 19 22 8 37 8c10 0 18 5 23 13 5-8 13-13 23-13 15 0 29 11 29 30 0 34-52 66-52 66z" fill="rgba(255,255,255,.07)" stroke="#ff7aa2" stroke-width="3"/>
+            <g clip-path="url(#hclip)"><rect id="heart-fill" x="0" y="112" width="120" height="112" fill="url(#hg)"/></g>
+          </svg>
+          <span id="heart-pct" class="heart-pct">0%</span>
+        </button>
+        <p id="heart-tease" class="sub" aria-live="polite"></p>
+        <button id="heart-skip" class="text-link" type="button">Lewati animasi tahan</button>
+      </div>
+    </section>
+
+    <!-- 9 · Video -->
+    <section class="page" id="page-video" data-page="video" data-title="Video" aria-labelledby="video-title" hidden>
+      <div class="inner center">
+        <p class="badge">Halaman 8 — Kejutan</p>
+        <h2 class="title" id="video-title">Khusus <span class="grad">buat kamu</span> 🎬</h2>
+        <div class="card video-card">
+          <div class="curtain" id="curtain" aria-hidden="true"><i class="c-l"></i><i class="c-r"></i></div>
+          <video id="the-video" controls playsinline preload="metadata" hidden></video>
+          <div id="video-empty" class="video-empty">
+            <p class="handwritten">Film kita belum dipasang.</p>
+            <p class="tiny muted">Taruh video di <code>public/media/video/kita.mp4</code>, lalu isi <code>video.src</code> di config.js.</p>
+            <label class="btn ghost file-label" for="video-input">Coba video lokal</label>
+            <input id="video-input" type="file" accept="video/*" hidden />
           </div>
         </div>
-      </header>
+        <p id="vid-note" class="vid-note" aria-live="polite">&nbsp;</p>
+        <p class="tiny muted" id="video-note"></p>
+      </div>
+    </section>
 
-      <main class="page-stage" id="page-content" tabindex="-1">
-        <!-- 01. The birthday delivery. Tap Eren's mission for a little surprise. -->
-        <section class="app-page home-page" id="home" data-page="home" aria-labelledby="hero-title">
-          <div class="page-inner container home-layout">
-            <div class="hero-copy">
-              <div class="eyebrow hero-eyebrow"><span class="status-dot"></span> EDISI SPESIAL · HARI ULANG TAHUNMU</div>
-              <p class="handwritten hero-greeting">Hai, <span data-bind="recipient">Sayang</span> <span class="greeting-heart">♡</span></p>
-              <h1 id="hero-title" class="page-title" tabindex="-1"><span data-bind="hero.title">Dunia lebih indah,</span> <em data-bind="hero.highlight">karena ada kamu.</em></h1>
-              <p class="hero-description" data-bind="hero.description">Dari sekian banyaknya kebetulan di dunia, bertemu denganmu adalah favoritku. Hari ini, semuanya tentang kamu.</p>
-              <div class="hero-actions"><a class="button button-primary" href="#reasons"><i data-icon="wings"></i> Mulai misi <i data-icon="arrow-right"></i></a><button class="text-link" id="mission-brief" type="button">Lihat misi rahasia <i data-icon="arrow-up-right"></i></button></div>
-              <p class="made-with"><span class="tiny-heart">♥</span> Delapan halaman kecil. Enam stempel tersembunyi. Semuanya buat kamu.</p>
+    <!-- 10 · Sertifikat -->
+    <section class="page" id="page-certificate" data-page="certificate" data-title="Sertifikat" data-task="sign" aria-labelledby="certificate-title" hidden>
+      <div class="inner">
+        <p class="badge center-t">Halaman 9 — Sertifikat</p>
+        <h2 class="title center-t" id="certificate-title">Sertifikat <span class="grad">Birthday</span></h2>
+        <p class="sub center-t">Satu langkah terakhir: tanda tanganmu 🖊️</p>
+        <div class="cert" id="cert">
+          <div class="cert-border">
+            <div class="cert-corner tl" aria-hidden="true"></div><div class="cert-corner tr" aria-hidden="true"></div>
+            <div class="cert-corner bl" aria-hidden="true"></div><div class="cert-corner br" aria-hidden="true"></div>
+            <div class="wax" id="wax" aria-hidden="true">🌹</div>
+            <p class="cert-kicker" id="cert-kicker"></p>
+            <h3 class="cert-title" id="cert-title"></h3>
+            <div class="cert-rule" aria-hidden="true"><i></i>🌹<i></i></div>
+            <p class="cert-text" id="cert-text"></p>
+            <p class="cert-name" id="cert-name"></p>
+            <p class="cert-text" id="cert-role"></p>
+            <ul class="cert-perks" id="cert-perks"></ul>
+            <p class="cert-text tiny-note" id="cert-note"></p>
+            <div class="cert-signs">
+              <div class="sign-col">
+                <div class="sign-slot"><img id="sig-img" alt="Tanda tangan pemberi hadiah" hidden /><span id="sig-fallback" class="sig-fallback"></span></div>
+                <div class="sign-line"></div>
+                <p class="sign-name" id="sender-name"></p>
+                <p class="sign-role">Pemberi Hadiah</p>
+              </div>
+              <div class="sign-col">
+                <div class="sign-slot">
+                  <canvas id="sig-pad" width="520" height="220" aria-label="Area tanda tangan penerima"></canvas>
+                  <span id="pad-hint" class="pad-hint">✍️ coret tanda tanganmu di sini</span>
+                </div>
+                <div class="sign-line"></div>
+                <p class="sign-name" id="recipient-name"></p>
+                <p class="sign-role">Penerima Hadiah</p>
+              </div>
             </div>
-            <div class="hero-art" role="group" aria-label="Kejutan ulang tahun dari Eren">
-              <span class="hero-orbit orbit-one" aria-hidden="true"></span><span class="hero-orbit orbit-two" aria-hidden="true"></span><span class="doodle-star star-one" aria-hidden="true">✧</span><span class="doodle-star star-two" aria-hidden="true">✦</span><span class="doodle-heart" aria-hidden="true">♡</span>
-              <div class="birthday-stamp" aria-hidden="true"><span>HADIAH KECIL</span><i data-icon="heart"></i><span>SAYANG BESAR</span></div>
-              <figure class="hero-polaroid"><span class="washi-tape hero-tape" aria-hidden="true"></span><div class="hero-photo-wrap"><img class="hero-photo" src="/media/eren-birthday.webp" width="1000" height="1250" alt="Ilustrasi Eren Yeager tersenyum malu sambil membawa kue ulang tahun stroberi." fetchpriority="high" /></div><figcaption><span data-bind="hero.note">Eren juga datang bawa kue, lho.</span><span class="caption-heart" aria-hidden="true">♡</span></figcaption></figure>
-              <button class="eren-note" id="eren-mission" type="button" aria-controls="eren-message" title="Klik untuk pesan misi Eren berikutnya"><span class="eren-note-icon"><i data-icon="wings"></i></span><span class="mission-copy"><span class="note-kicker">MISI EREN HARI INI · KLIK AKU</span><span class="mission-text" id="eren-message">Bikin kamu senyum.<br /><strong>Harus berhasil.</strong></span></span><span class="note-check" aria-hidden="true">✓</span></button>
-              <span class="hero-side-note" aria-hidden="true">a little surprise, a lot of love</span>
-              <svg class="hero-squiggle" viewBox="0 0 110 75" fill="none" aria-hidden="true"><path d="M5 15c22 43 70 49 81 23 10-25-28-32-26-7 2 21 21 31 43 29m-11-9 12 9-12 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
-            </div>
+            <p class="cert-date" id="cert-date"></p>
           </div>
-        </section>
-
-        <!-- 02. A deck of love notes. -->
-        <section class="app-page" id="reasons" data-page="reasons" aria-labelledby="reasons-title" hidden>
-          <div class="page-inner container reasons-section">
-            <div class="reasons-intro"><p class="eyebrow"><span class="section-number">02</span> HAL KECIL, RASA BESAR</p><h2 class="page-title" id="reasons-title" tabindex="-1">Sedikit alasan, <br />untuk sayang&nbsp;<br />yang <em>banyak.</em></h2><p class="section-description">Kalau ditulis semua, nggak muat satu halaman. Jadi, buka pelan-pelan, ya?</p><div class="reasons-note handwritten" aria-hidden="true">dan masih bertambah setiap hari <svg viewBox="0 0 85 35" fill="none"><path d="M3 7c19 28 49 22 73 7m-12-2 14 1-5 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" /></svg></div></div>
-            <div class="reason-deck"><div class="reason-paper paper-back" aria-hidden="true"></div><article class="reason-card" id="reason-card" aria-live="polite" aria-atomic="true"><div class="reason-card-inner"><div class="reason-face reason-front"><span class="washi-tape reason-tape" aria-hidden="true"></span><div class="reason-top"><span class="note-kicker">ALASAN UNTUK SAYANG KAMU</span><span class="reason-counter" id="reason-counter">01 / 05</span></div><div class="reason-illustration" id="reason-icon" aria-hidden="true"><i data-icon="sun"></i></div><h3 id="reason-title">Kamu itu rumah.</h3><p id="reason-text">Bukan tempat, tapi perasaan. Sesederhana ada kamu di dekatku, dan semuanya terasa lebih tenang.</p><div class="reason-bottom"><span class="handwritten">satu dari banyak hal tentangmu</span><button class="heart-button" id="reason-like" type="button" aria-label="Simpan alasan ini sebagai favorit" aria-pressed="false"><i data-icon="heart"></i></button></div></div><div class="reason-face reason-back" aria-hidden="true"><span class="washi-tape reason-tape" aria-hidden="true"></span><span class="note-kicker">PESAN RAHASIA DI BALIK KARTU</span><p class="reason-secret handwritten" id="reason-secret"></p><span class="secret-stamp" aria-hidden="true">♡</span></div></div></article><div class="reason-controls"><div class="reason-dots" id="reason-dots" role="group" aria-label="Pilih alasan sayang"></div><div class="reason-arrows"><button class="small-button reason-flip" id="reason-flip" type="button" aria-pressed="false"><i data-icon="rotate"></i> Balik kartu</button><button class="circle-button" id="reason-prev" type="button" aria-label="Alasan sebelumnya"><i data-icon="arrow-left"></i></button><button class="circle-button" id="reason-next" type="button" aria-label="Alasan berikutnya"><i data-icon="arrow-right"></i></button></div></div></div>
-          </div>
-        </section>
-
-        <!-- 03. An album spread, not a long gallery. -->
-        <section class="app-page album-page" id="memories" data-page="memories" aria-labelledby="memories-title" hidden>
-          <div class="page-inner container album-layout">
-            <div class="section-heading centered"><p class="eyebrow"><span class="section-number">03</span> HALAMAN FAVORITKU</p><h2 id="memories-title" class="page-title" tabindex="-1">Kita, dalam <em>bingkai kecil.</em></h2><p class="section-description">Nggak harus sempurna. Yang ada kamunya, aku suka.</p></div>
-            <div class="gallery-toolbar"><span class="gallery-hint"><i data-icon="expand"></i> Klik foto untuk melihat lebih dekat.</span><div class="gallery-actions"><button class="small-button" type="button" id="reset-photos" hidden><i data-icon="rotate"></i> Reset</button><button class="small-button" type="button" id="preview-photos"><i data-icon="image-plus"></i> Coba foto kamu</button><input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple hidden /></div></div>
-            <div class="album-spread"><div class="photo-grid" id="photo-grid"></div><div class="album-controls"><button class="circle-button" id="album-prev" type="button" aria-label="Lembar album sebelumnya"><i data-icon="arrow-left"></i></button><div class="album-position"><span id="album-count" aria-live="polite" aria-atomic="true">01–02 / 06</span><div id="album-dots" class="album-dots" role="group" aria-label="Pilih lembar album"></div></div><button class="circle-button" id="album-next" type="button" aria-label="Lembar album berikutnya"><i data-icon="arrow-right"></i></button></div></div>
-            <div class="gallery-notes"><p class="gallery-footnote" id="gallery-note"><i data-icon="camera"></i> Bingkai ini menunggu foto kalian. Isi lewat VS Code, atau coba foto lokal.</p><p class="gallery-local-note">Pratinjau lokal tidak diunggah dan hilang saat website dimuat ulang.</p></div>
-          </div>
-        </section>
-
-        <!-- 04. Our little movie. -->
-        <section class="app-page" id="film" data-page="film" aria-labelledby="film-title" hidden>
-          <div class="page-inner container film-section"><div class="film-panel"><div class="film-copy"><p class="eyebrow"><span class="section-number">04</span> OUR LITTLE MOVIE</p><h2 id="film-title" class="page-title" tabindex="-1" data-bind="video.title">Kalau cerita kita punya film.</h2><p data-bind="video.description">Potongan kecil kehidupan, yang nggak pernah kecil artinya buat aku.</p><div class="film-divider" aria-hidden="true"><span></span><i data-icon="heart"></i><span></span></div><p class="film-handwritten handwritten" data-bind="video.note">Sebuah film pendek tentang kita. Disutradarai oleh semesta.</p><div class="cinema-ticket" id="cinema-ticket"><div class="ticket-main"><span class="ticket-kicker">ADMIT TWO</span><strong>KAMU + AKU</strong><small>SEAT 01 · ROW ♡ · NO EXPIRY</small></div><button class="ticket-stub" id="tear-ticket" type="button" aria-pressed="false">SOBEK<br />TIKET</button></div><span class="film-corner-star" aria-hidden="true">✧</span></div><div class="film-player-wrap"><div class="film-player" id="film-player"><div class="film-placeholder" id="film-placeholder" aria-hidden="true"><div class="film-holes top"></div><span class="film-kicker">THE STORY OF US</span><div class="film-illustration"><i data-icon="clapperboard"></i><span>♡</span></div><p class="handwritten">coming to my heart, always</p><div class="film-holes bottom"></div></div><video id="birthday-video" playsinline preload="metadata" hidden aria-label="Video kenangan kita"></video><button class="film-play-button" id="film-play" type="button" aria-label="Putar video kenangan"><i data-icon="play"></i></button><span class="film-frame-label" id="film-frame-label">EDISI KITA BERDUA</span><div class="film-countdown" id="film-countdown" hidden aria-live="polite"></div></div><div class="film-caption"><span><span class="record-dot"></span> HAL BAIK LAYAK DIULANG</span><button id="change-video" type="button" class="film-change"><i data-icon="upload"></i> Coba video lokal</button><input type="file" id="video-input" accept="video/mp4,video/webm,video/ogg,video/quicktime" hidden /></div><p class="video-error" id="video-error" role="status" hidden></p></div></div></div>
-        </section>
-
-        <!-- 05. Blow out the candles. -->
-        <section class="app-page" id="wish" data-page="wish" aria-labelledby="wish-title" hidden>
-          <div class="page-inner container wish-layout">
-            <article class="wish-card" aria-label="Kue ulang tahun interaktif"><span class="gift-number">KEJUTAN PERTAMA · SATU HARAPAN</span><div class="cake-scene" id="cake-scene"><span class="cake-sparkle sparkle-a" aria-hidden="true">✧</span><span class="cake-sparkle sparkle-b" aria-hidden="true">✦</span><span class="cake-sparkle sparkle-c" aria-hidden="true">♡</span><div class="birthday-cake" role="group" aria-label="Kue dengan tiga lilin. Klik lilin untuk meniupnya."><div class="cake-candles"><button class="candle" type="button" aria-label="Tiup lilin 1" aria-pressed="false"><span class="flame"></span><span class="smoke"></span><span class="candle-wax"></span></button><button class="candle" type="button" aria-label="Tiup lilin 2" aria-pressed="false"><span class="flame"></span><span class="smoke"></span><span class="candle-wax"></span></button><button class="candle" type="button" aria-label="Tiup lilin 3" aria-pressed="false"><span class="flame"></span><span class="smoke"></span><span class="candle-wax"></span></button></div><div class="cake-top"></div><div class="cake-body"><div class="cake-icing"></div><span class="cake-heart">♡</span><span class="cake-sprinkle s1"></span><span class="cake-sprinkle s2"></span><span class="cake-sprinkle s3"></span></div><div class="cake-plate"></div></div></div><button class="button button-primary wish-button" id="blow-candles" type="button"><i data-icon="wind"></i><span>Tiup lilin & buat harapan</span></button><p class="cake-hint" id="cake-hint">Atau klik lilinnya satu per satu.</p></article>
-            <div class="wish-copy"><p class="eyebrow"><span class="section-number">05</span> SEKARANG, WAKTUNYA KAMU</p><h2 class="page-title" id="wish-title" tabindex="-1">Make a wish, <em>love.</em></h2><p class="wish-instruction" id="wish-instruction">Pejamkan mata. Simpan satu harapan.<br />Kalau sudah, tiup lilinnya, ya.</p><div class="private-wish" id="private-wish-wrap"><label for="private-wish">Harapan rahasiamu <span>(opsional)</span></label><textarea id="private-wish" maxlength="180" rows="2" placeholder="Cuma kamu dan langit yang tahu…"></textarea><p class="private-wish-note"><i data-icon="lock"></i> Tersimpan di perangkat ini. Tidak dikirim ke mana-mana.</p></div><div class="wish-placeholder" id="wish-placeholder" aria-hidden="true"><span class="handwritten">Semesta sedang mendengarkan.</span><i data-icon="sparkles"></i></div><div class="wish-message" id="wish-message" hidden aria-live="polite"><span class="handwritten">Untuk semua harapan baikmu…</span><p data-bind="wish"></p><span class="wish-seal" aria-hidden="true">♡</span></div><span class="gift-opened" data-opened="wish" hidden><i data-icon="check"></i> Harapan sudah dibuat. Boleh dibuat lagi.</span></div>
-          </div>
-        </section>
-
-        <!-- 06. A sealed letter, opened only by its recipient. -->
-        <section class="app-page" id="letter" data-page="letter" aria-labelledby="letter-page-title" hidden>
-          <div class="page-inner container letter-page-layout">
-            <div class="letter-page-copy"><p class="eyebrow"><span class="section-number">06</span> DITULIS PELAN-PELAN</p><h2 class="page-title" id="letter-page-title" tabindex="-1">Beberapa hal yang<br /><em>ingin aku bilang.</em></h2><p class="section-description">Ada rasa yang lebih nyaman dititipkan lewat tulisan. Segelnya cuma buat kamu yang buka.</p><button class="button button-primary" id="open-letter" type="button"><i data-icon="mail-heart"></i> Buka suratnya <i data-icon="arrow-up-right"></i></button><p class="handwritten letter-page-note">Jangan buru-buru. Baca sampai selesai, ya.</p><span class="gift-opened" data-opened="letter" hidden><i data-icon="check"></i> Sudah dibaca. Tetap boleh dibaca lagi.</span></div>
-            <button class="letter-envelope-button" id="letter-envelope-button" type="button"><span class="sr-only">Buka amplop surat cinta. </span><span class="envelope-art" aria-hidden="true"><span class="envelope-paper"><span>for you,<br />with love ♡</span></span><span class="envelope-front"></span><span class="envelope-flap"></span><span class="envelope-seal">♥</span></span><span class="envelope-click-label handwritten">klik segelnya ♡</span></button>
-          </div>
-        </section>
-
-        <!-- 07. Scratch a real coupon, right on its own page. -->
-        <section class="app-page" id="coupons" data-page="coupons" aria-labelledby="coupon-heading" hidden>
-          <div class="page-inner container coupon-page-layout">
-            <div class="coupon-page-copy"><p class="eyebrow"><span class="section-number">07</span> BERLAKU SEPANJANG SAYANG</p><h2 class="page-title" id="coupon-heading" tabindex="-1">Kupon untuk <br /><em>dimanja.</em></h2><p class="section-description">Pilih yang paling kamu butuhkan. Tanpa kedaluwarsa, tanpa syarat rumit.</p><div class="coupon-choices" id="coupon-choices" role="group" aria-label="Pilih kupon"></div><span class="gift-opened" data-opened="coupon" hidden><i data-icon="check"></i> Kupon sayang sudah ditemukan</span></div>
-            <div class="coupon-page-game"><div class="coupon-empty" id="coupon-empty"><i data-icon="ticket"></i><span class="handwritten">Ada hadiah di balik ini.</span><p>Pilih satu kupon untuk mulai menggosok.</p></div><div class="scratch-area" id="scratch-area" hidden><div class="scratch-ticket"><span class="eyebrow">KUPON RESMI DIMANJA</span><span class="ticket-icon" id="ticket-icon"></span><h3 id="ticket-title"></h3><p id="ticket-description"></p><span class="ticket-code" id="ticket-code"></span><span class="ticket-valid">Berlaku setiap kali kamu butuh ♡</span></div><canvas id="scratch-canvas" aria-hidden="true"></canvas><span class="scratch-instruction" id="scratch-instruction"><i data-icon="hand"></i> Gosok pelan-pelan pakai jari atau mouse</span></div><p class="scratch-status" id="scratch-status" role="status">Satu kupon, satu alasan untuk dekat.</p><div class="coupon-actions"><button class="small-button" type="button" id="accessible-reveal" hidden><i data-icon="sparkles"></i> Buka tanpa menggosok</button><button class="button button-primary" type="button" id="save-coupon" hidden><i data-icon="download"></i> Simpan kuponku</button></div><p class="coupon-footnote">Tukar dengan pelukan asli saat kita bertemu.</p></div>
-          </div>
-        </section>
-
-        <!-- 08. One last hug, then replay whenever needed. -->
-        <section class="app-page" id="closing" data-page="closing" aria-labelledby="closing-title" hidden>
-          <div class="page-inner container closing-section"><div class="mission-sky" id="mission-sky" aria-hidden="true"></div><p class="eyebrow">HALAMAN TERAKHIR, BUKAN AKHIR CERITA</p><h2 id="closing-title" class="page-title" tabindex="-1" data-bind="footer">Di semua semesta, aku tetap pilih kamu.</h2><p class="closing-signature">Dengan seluruh sayang, <span data-bind="sender">Aku yang paling sayang kamu</span> <span aria-hidden="true">♡</span></p><div class="closing-actions"><button class="button button-primary" id="final-hug" type="button"><i data-icon="heart"></i> Kirim pelukan</button><a class="text-link" href="#home"><i data-icon="rotate"></i> Baca dari awal</a></div><p class="handwritten closing-hug-note" id="hug-note" aria-live="polite">Satu halaman boleh selesai. Sayangnya nggak.</p><div class="surprise-progress" id="surprise-progress"><span class="progress-dot" data-progress="wish"></span><span class="progress-dot" data-progress="letter"></span><span class="progress-dot" data-progress="coupon"></span><span id="progress-label">0 dari 3 kejutan dibuka</span></div><div class="mission-progress-card"><p class="mission-status" id="mission-status">Misi Eren: 0 dari 6 stempel terkumpul.</p><div class="stamp-row" id="stamp-row" role="list" aria-label="Stempel misi"></div><button class="button button-primary" id="open-reward" type="button" disabled><i data-icon="gift"></i> Buka hadiah terakhir</button></div><p class="closing-fan-note" data-bind="fanNote"></p></div>
-        </section>
-      </main>
-
-      <footer class="page-footer">
-        <div class="page-footer-inner container">
-          <button class="page-prev" id="page-prev" type="button"><i data-icon="arrow-left"></i><span>Kembali</span></button>
-          <div class="page-position"><p id="page-indicator" aria-live="polite"><span id="page-number">01 / 08</span><span class="page-position-dot">·</span><span id="page-name">Pembuka</span></p><nav class="page-dots" id="page-dots" aria-label="Pilih halaman hadiah"></nav></div>
-          <a class="button button-primary page-next" id="page-next" href="#reasons"><span id="page-next-label">Mulai cerita</span><i data-icon="arrow-right"></i></a>
         </div>
-        <div class="footer-utility container"><span>Sebuah hadiah kecil. Untuk rasa yang besar.</span><button class="setup-link" id="open-setup" type="button"><i data-icon="settings"></i> Isi foto & video</button><span class="footer-love">MADE WITH ♥ · <span id="year">2026</span></span></div>
-      </footer>
+        <div class="row">
+          <button id="clear-sig" class="btn ghost" type="button">Hapus Coretan</button>
+          <button id="preview-cert" class="btn ghost" type="button">Lihat Hasil 👀</button>
+          <button id="save-cert" class="btn" type="button">Sahkan &amp; Download 📜</button>
+        </div>
+        <p id="cert-status" class="tiny muted center-t" aria-live="polite">Belum ditandatangani…</p>
+      </div>
+    </section>
+
+    <!-- 11 · Penutup -->
+    <section class="page" id="page-closing" data-page="closing" data-title="Penutup" aria-labelledby="closing-title" hidden>
+      <div class="inner center">
+        <div class="final-heart" aria-hidden="true">❤️</div>
+        <h2 class="display script" id="closing-title"></h2>
+        <p class="lead" id="closing-lead"></p>
+        <p class="handsign" id="closing-sign"></p>
+        <div class="row">
+          <button id="again-btn" class="btn ghost" type="button">↺ Ulang dari awal</button>
+          <button id="love-btn" class="btn" type="button">Aku juga sayang kamu ❤️</button>
+        </div>
+        <p id="love-msg" class="hint" aria-live="polite">&nbsp;</p>
+        <p class="tiny muted fan-note" id="fan-note"></p>
+      </div>
+    </section>
+  </main>
+
+  <nav class="nav" id="nav" aria-label="Navigasi halaman">
+    <button id="prev" class="nav-btn" type="button" aria-label="Halaman sebelumnya">‹</button>
+    <span class="nav-label" id="nav-label">Sampul</span>
+    <button id="next" class="nav-btn primary" type="button" aria-label="Halaman berikutnya">›</button>
+  </nav>
+  <p id="lock-msg" class="lock-msg" role="status" aria-live="polite">&nbsp;</p>
+  <p id="resume-msg" class="resume-msg" role="status" aria-live="polite">&nbsp;</p>
+
+  <dialog class="modal" id="help-dialog" aria-labelledby="help-title">
+    <div class="modal-box">
+      <h3 id="help-title">Cara bacanya 📖</h3>
+      <p>Geser kiri/kanan, pakai tombol ‹ ›, atau tekan tombol panah di keyboard.</p>
+      <p>Beberapa halaman perlu kamu mainkan dulu sebelum bisa lanjut 😌</p>
+      <p>Tombol 🎵 di kiri atas buat nyalain musik.</p>
+      <button class="btn" type="button" data-close>Siap! 👌</button>
     </div>
+  </dialog>
 
-    <dialog class="modal chapters-modal" id="chapters-dialog" aria-labelledby="chapters-heading"><button class="modal-close" type="button" data-close aria-label="Tutup daftar halaman"><i data-icon="x"></i></button><p class="eyebrow">BUKU KEJUTAN UNTUKMU</p><h2 id="chapters-heading">Mau buka <em>halaman mana?</em></h2><p class="modal-description">Nggak harus berurutan. Tapi tiap halaman punya kejutan kecil.</p><nav class="chapter-list" id="chapter-list" aria-label="Daftar delapan halaman"></nav><p class="chapter-help"><i data-icon="book"></i> Pakai tombol Kembali / Lanjut untuk membaca seperti buku.</p></dialog>
+  <dialog class="modal" id="photo-dialog" aria-labelledby="photo-caption">
+    <div class="modal-box wide">
+      <button class="modal-close" type="button" data-close aria-label="Tutup foto">×</button>
+      <div id="photo-large" class="photo-large"></div>
+      <h3 id="photo-caption" class="handwritten"></h3>
+      <p id="photo-secret" class="photo-secret"></p>
+    </div>
+  </dialog>
 
-    <dialog class="modal gallery-modal" id="gallery-dialog" aria-labelledby="lightbox-caption"><button class="modal-close" type="button" data-close aria-label="Tutup galeri"><i data-icon="x"></i></button><div class="polaroid-flip" id="polaroid-flip"><div class="polaroid-face polaroid-front"><div class="lightbox-image" id="lightbox-image"></div></div><div class="polaroid-face polaroid-back" aria-hidden="true"><span class="eyebrow">CATATAN DI BALIK FOTO</span><p class="handwritten" id="photo-secret"></p><span class="back-stamp" aria-hidden="true">disimpan baik-baik ♡</span></div></div><button class="lightbox-arrow lightbox-prev" id="lightbox-prev" type="button" aria-label="Foto sebelumnya"><i data-icon="arrow-left"></i></button><button class="lightbox-arrow lightbox-next" id="lightbox-next" type="button" aria-label="Foto berikutnya"><i data-icon="arrow-right"></i></button><div class="lightbox-footer"><div><span class="eyebrow" id="lightbox-count"></span><h3 id="lightbox-caption"></h3></div><button class="small-button" id="photo-flip" type="button" aria-pressed="false"><i data-icon="rotate"></i> Balik polaroid</button></div></dialog>
+  <dialog class="modal" id="preview-dialog" aria-labelledby="preview-title">
+    <div class="modal-box wide">
+      <h3 id="preview-title">Pratinjau Sertifikat 📜</h3>
+      <img id="preview-img" alt="Pratinjau sertifikat ulang tahun" />
+      <p class="tiny muted">Ini persis file PNG yang akan kamu download (2000×1414 px).</p>
+      <button class="btn" type="button" data-close>Tutup</button>
+    </div>
+  </dialog>
 
-    <dialog class="modal letter-modal" id="letter-dialog" aria-labelledby="letter-heading"><button class="modal-close" type="button" data-close aria-label="Tutup surat"><i data-icon="x"></i></button><div class="letter-paper"><span class="letter-date handwritten">Hari ini, dan setiap hari.</span><span class="letter-heart" aria-hidden="true">♡</span><p class="eyebrow">SEBUAH SURAT, HANYA UNTUKMU</p><h2 id="letter-heading" data-bind="letter.greeting">Untuk manusia favoritku,</h2><div class="letter-body" id="letter-body"></div><p class="letter-closing" data-bind="letter.closing">Selalu memilihmu,</p><p class="letter-signature handwritten" data-bind="sender">Aku yang paling sayang kamu</p><div class="letter-actions"><button class="button button-primary" id="save-letter" type="button"><i data-icon="download"></i> Simpan surat ini</button><button class="text-link" id="send-hug" type="button">Peluk balik <i data-icon="heart"></i></button></div></div></dialog>
-
-    <dialog class="modal setup-modal" id="setup-dialog" aria-labelledby="setup-heading"><button class="modal-close" type="button" data-close aria-label="Tutup panduan"><i data-icon="x"></i></button><p class="eyebrow">RUANG UNTUK CERITA KALIAN</p><h2 id="setup-heading">Bikin semakin <em>kamu.</em></h2><p class="modal-description">Masukkan file lewat VS Code, lalu simpan. Setiap halaman punya tempatnya sendiri.</p><div class="setup-tabs" role="tablist" aria-label="Panduan media"><button role="tab" id="tab-photos" aria-selected="true" aria-controls="setup-photos" data-setup-tab="photos" type="button"><i data-icon="camera"></i> Foto</button><button role="tab" id="tab-video" aria-selected="false" aria-controls="setup-video" data-setup-tab="video" tabindex="-1" type="button"><i data-icon="film"></i> Video</button><button role="tab" id="tab-personal" aria-selected="false" aria-controls="setup-personal" data-setup-tab="personal" tabindex="-1" type="button"><i data-icon="heart"></i> Pesan</button></div><div class="setup-content" id="setup-photos" role="tabpanel" aria-labelledby="tab-photos" tabindex="0"><ol><li>Salin foto ke <code>public/media/photos/</code>.</li><li>Buka <code>public/config.js</code>, lalu isi <code>src</code> pada bagian photos.</li></ol><pre><code>src: '/media/photos/kita.jpg'</code></pre><p>JPG, PNG, atau WebP, di bawah 2 MB per foto. Album menampilkan dua foto per lembar di desktop dan satu di HP.</p><button class="button button-primary" id="setup-photo-preview" type="button"><i data-icon="image-plus"></i> Coba foto dari perangkat</button></div><div class="setup-content" id="setup-video" role="tabpanel" aria-labelledby="tab-video" tabindex="0" hidden><ol><li>Salin video ke <code>public/media/video/</code>.</li><li>Isi bagian video di <code>public/config.js</code>.</li></ol><pre><code>src: '/media/video/kita.mp4'</code></pre><p>Gunakan MP4 (H.264 + AAC), usahakan di bawah 50 MB. Video berhenti saat kamu pindah halaman.</p><button class="button button-primary" id="setup-video-preview" type="button"><i data-icon="upload"></i> Coba video dari perangkat</button></div><div class="setup-content" id="setup-personal" role="tabpanel" aria-labelledby="tab-personal" tabindex="0" hidden><p>Nama, alasan sayang, surat, harapan, dan kupon ada di satu file:</p><pre><code>public/config.js</code></pre><p>Ubah <code>recipient</code> menjadi nama pasanganmu dan <code>sender</code> menjadi namamu. Semua pesan tetap bisa diganti.</p><p>Panduan lengkap ada di <code>README.md</code>. Urutan delapan halaman diatur di <code>src/pages.js</code>.</p></div><p class="setup-privacy"><i data-icon="lock"></i> File pratinjau tidak dikirim ke server. Kenanganmu tetap milikmu.</p></dialog>
-
-    <dialog class="modal mission-modal" id="mission-dialog" aria-labelledby="mission-heading"><button class="modal-close" type="button" data-close aria-label="Tutup misi"><i data-icon="x"></i></button><p class="eyebrow">DARI EREN, UNTUK KAMU</p><h2 id="mission-heading">Misi rahasia: <em>bikin kamu senyum.</em></h2><p class="modal-description" id="mission-intro"></p><ol class="mission-list" id="mission-list"></ol><p class="mission-help"><i data-icon="wings"></i> Tidak perlu berurutan. Setiap stempel membuka satu bagian kecil dari hadiah terakhir.</p><button class="text-link mission-reset" id="mission-reset" type="button">Ulangi misi dari awal <i data-icon="rotate"></i></button></dialog>
-
-    <dialog class="modal reward-modal" id="reward-dialog" aria-labelledby="reward-heading"><button class="modal-close" type="button" data-close aria-label="Tutup hadiah terakhir"><i data-icon="x"></i></button><div class="reward-wings" aria-hidden="true"><i data-icon="wings"></i></div><p class="eyebrow">SEMUA STEMPEL TERKUMPUL</p><h2 id="reward-heading">Hadiah terakhir <em>terbuka.</em></h2><p class="reward-text" id="reward-text"></p><p class="reward-pass-note" id="reward-pass-note"></p><div class="reward-actions"><button class="button button-primary" id="save-pass" type="button"><i data-icon="download"></i> Simpan Birthday Pass</button><button class="text-link" id="reward-hug" type="button">Peluk Eren dulu <i data-icon="heart"></i></button></div></dialog>
-
-    <div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-icon" aria-hidden="true">♡</span><span id="toast-message"></span></div>
-    <canvas class="confetti-canvas" id="confetti-canvas" aria-hidden="true"></canvas>
-    <noscript><div class="noscript-note">Aktifkan JavaScript untuk membuka delapan halaman kejutan ini. Selamat ulang tahun, Sayang! ♡</div></noscript>
-  </body>
+  <script type="module" src="/src/main.js"></script>
+</body>
 </html>

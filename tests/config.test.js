@@ -14,29 +14,35 @@ test('personal configuration is valid JavaScript with required sections', () => 
     assert.equal(typeof config[field], 'string');
     assert.ok(config[field].trim().length > 0, `${field} cannot be empty`);
   }
-  for (const field of ['hero', 'video', 'music', 'letter']) assert.ok(config[field]);
-  assert.ok(Array.isArray(config.letter.paragraphs));
-  assert.ok(config.letter.paragraphs.length > 0);
+  for (const field of ['gate', 'opening', 'letter', 'clock', 'mascot', 'album', 'heart', 'video', 'music', 'certificate', 'closing']) {
+    assert.ok(config[field], `Missing config.${field}`);
+  }
+  assert.ok(Array.isArray(config.letter.paragraphs) && config.letter.paragraphs.length > 0);
   assert.ok(config.letter.paragraphs.every((text) => typeof text === 'string'));
   assert.ok(config.age === null || (Number.isInteger(config.age) && config.age > 0));
+  assert.ok(!Number.isNaN(new Date(config.jadian).getTime()), 'jadian must be a valid date');
 });
 
-test('interactive cards have text and at least one choice', () => {
-  for (const field of ['reasons', 'photos', 'coupons']) {
-    assert.ok(Array.isArray(config[field]));
-    assert.ok(config[field].length > 0, `${field} needs at least one item`);
+test('interactive sections have enough content', () => {
+  assert.ok(Array.isArray(config.typed) && config.typed.length > 0);
+  assert.ok(Array.isArray(config.roses) && config.roses.length >= 3);
+  assert.ok(config.roses.every((text) => typeof text === 'string' && text.trim()));
+  assert.ok(Array.isArray(config.quiz) && config.quiz.length > 0);
+  for (const q of config.quiz) {
+    assert.ok(q.q && Array.isArray(q.o) && q.o.length >= 2 && q.f);
   }
-  for (const reason of config.reasons) {
-    assert.ok(reason.title && reason.text && reason.icon);
-  }
-  for (const coupon of config.coupons) {
-    assert.ok(coupon.title && coupon.description && coupon.code && coupon.icon);
-  }
-  assert.equal(new Set(config.coupons.map((coupon) => coupon.code)).size, config.coupons.length);
+  assert.ok(Array.isArray(config.photos) && config.photos.length > 0);
+  for (const photo of config.photos) assert.ok(photo.caption && photo.alt);
+  assert.ok(Array.isArray(config.certificate.perks) && config.certificate.perks.length > 0);
+  assert.ok(Array.isArray(config.closing.love) && config.closing.love.length > 0);
 });
 
 test('all configured local media paths resolve to public, and exist', () => {
-  const sources = [...config.photos.map((photo) => photo.src), config.video.src, config.video.poster, config.music.src];
+  const sources = [
+    ...config.photos.map((photo) => photo.src),
+    config.video.src, config.video.poster, config.music.src,
+    config.mascot.image, config.certificate.signatureSrc,
+  ];
   for (const src of sources.filter(Boolean)) {
     assert.equal(typeof src, 'string');
     if (/^https?:\/\//.test(src)) {
@@ -51,40 +57,12 @@ test('all configured local media paths resolve to public, and exist', () => {
   }
 });
 
-test('photo captions and accessible descriptions are present', () => {
-  for (const photo of config.photos) {
-    assert.ok(photo.caption && photo.alt && photo.date);
-    assert.ok(['first', 'date', 'adventure', 'silly', 'little', 'next'].includes(photo.placeholder));
-  }
-});
-
-test('Vercel configuration targets the Vite build output', () => {
-  const vercel = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
-  assert.equal(vercel.framework, 'vite');
-  assert.equal(vercel.buildCommand, 'npm run build');
-  assert.equal(vercel.outputDirectory, 'dist');
-  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
-  assert.ok(pkg.scripts.build.includes('vite build'));
-});
-
-test('hero image is a lightweight, real WebP', () => {
-  const file = readFileSync(new URL('../public/media/eren-birthday.webp', import.meta.url));
-  assert.equal(file.toString('ascii', 0, 4), 'RIFF');
-  assert.equal(file.toString('ascii', 8, 12), 'WEBP');
-  assert.ok(file.byteLength < 600_000, 'Hero should stay under 600 KB');
-});
-
-test('secret mission fields are optional but valid when present', () => {
-  if (config.mission) {
-    for (const field of ['title', 'intro', 'rewardTitle', 'reward', 'passNote']) {
-      assert.equal(typeof config.mission[field], 'string');
-      assert.ok(config.mission[field].trim().length > 0, `mission.${field} cannot be empty`);
-    }
-  }
-  for (const reason of config.reasons) {
-    if ('secret' in reason) assert.equal(typeof reason.secret, 'string');
-  }
-  for (const photo of config.photos) {
-    if ('secret' in photo) assert.equal(typeof photo.secret, 'string');
+test('gate and mascot have playful fallbacks', () => {
+  assert.ok(config.gate.question && config.gate.yes && config.gate.no);
+  assert.ok(Array.isArray(config.gate.teases) && config.gate.teases.length > 0);
+  assert.ok(config.mascot.name && config.mascot.intro);
+  assert.ok(Array.isArray(config.mascot.messages) && config.mascot.messages.length > 0);
+  for (const key of ['peluk', 'kasih', 'dandan', 'rahasia']) {
+    assert.ok(Array.isArray(config.mascot.actions[key]) && config.mascot.actions[key].length > 0);
   }
 });

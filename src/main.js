@@ -1,861 +1,434 @@
 import './styles.css';
-import './pages.css';
-import { PAGES, pageFromHash, navigationState } from './pages.js';
-import { icon, hydrateIcons } from './icons.js';
-import { placeholderImage } from './illustrations.js';
 import { BirthdayMusic } from './audio.js';
-import { celebrate } from './celebrations.js';
-import { ScratchCard } from './scratch.js';
-import { createMission } from './mission.js';
-import './creative.css';
 
-const config = window.BIRTHDAY_CONFIG;
-if (!config || !Array.isArray(config.photos) || !Array.isArray(config.reasons) || !Array.isArray(config.coupons)) {
-  throw new Error('Periksa public/config.js: photos, reasons, dan coupons harus berupa array.');
+const C = window.BIRTHDAY_CONFIG || {};
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const rnd = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const KEY = 'birthday-book-v1';
+const STATE = Object.assign({
+  page: 0, maxSeen: 0, tasks: {}, gateOpen: false, music: C.music?.autoplay !== false,
+  dollPlays: 0, dollMsg: '', dressed: false, roses: [], roseMsg: '', quizIndex: 0, quizDone: false,
+  unlocked: false, signature: '', sealed: false, certDate: '', serial: '', loveIndex: 0,
+}, (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } })());
+function save() { try { localStorage.setItem(KEY, JSON.stringify(STATE)); } catch {} }
+function resetAll() { try { localStorage.removeItem(KEY); } catch {} location.reload(); }
+function text(id, value) { const el = $(id); if (el) el.textContent = value ?? ''; }
+
+document.title = `Happy Birthday — ${C.recipient || 'Sayang'} 🎂`;
+text('#gate-kicker', C.gate?.kicker); text('#gate-title', C.gate?.question || `Kamu ${C.recipient || 'Sayang'}?`);
+text('#gate-lead', C.gate?.lead); text('#yes-btn', C.gate?.yes || 'Iya, aku 🙋‍♀️'); text('#no-btn', C.gate?.no || 'Bukan…');
+text('#opening-kicker', C.opening?.kicker); text('#opening-title', C.recipient || 'Sayang'); text('#opening-lead', C.opening?.lead);
+text('#opening-hint', C.opening?.hint); text('#opening-psst', C.opening?.psst);
+text('#letter-greeting', C.letter?.greeting); text('#letter-closing', C.letter?.closing);
+const letterBox = $('#letter-paragraphs');
+(C.letter?.paragraphs || []).forEach((p) => { const el = document.createElement('p'); el.textContent = p; letterBox.append(el); });
+text('#time-sub', C.clock?.sub); text('#mascot-name', C.mascot?.name || 'Eren');
+if (C.mascot?.image) $('#doll-img').src = C.mascot.image;
+text('#album-sub', C.album?.sub); text('#heart-sub', C.heart?.sub); text('#video-note', C.video?.note);
+text('#cert-kicker', C.certificate?.kicker); text('#cert-title', C.certificate?.title); text('#cert-text', C.certificate?.text);
+text('#cert-name', C.recipient); text('#cert-note', C.certificate?.note);
+$('#cert-role').innerHTML = '';
+$('#cert-role').append('secara sah, sadar, dan tanpa paksaan ditetapkan sebagai ');
+const roleB = document.createElement('b'); roleB.textContent = C.certificate?.role || 'Wanita Kesayangan';
+$('#cert-role').append(roleB, ` satu-satunya dari `, Object.assign(document.createElement('b'), { textContent: C.sender || 'Aku' }), '.');
+const perks = $('#cert-perks'); (C.certificate?.perks || []).forEach((p) => { const li = document.createElement('li'); li.textContent = p; perks.append(li); });
+text('#sender-name', C.sender); text('#recipient-name', C.recipient); text('#sig-fallback', C.sender);
+if (C.certificate?.signatureSrc) { const img = $('#sig-img'); img.src = C.certificate.signatureSrc; img.hidden = false; $('#sig-fallback').hidden = true; img.addEventListener('error', () => { img.hidden = true; $('#sig-fallback').hidden = false; }); }
+text('#closing-title', `${C.closing?.title || 'I love you,'} ${C.recipient || 'Sayang'}`);
+text('#closing-lead', C.closing?.lead); text('#closing-sign', `— ${C.sender || 'Aku'}`); text('#fan-note', C.fanNote);
+
+/* ───────── kelopak & hati ───────── */
+(function petals() {
+  const c = $('#petals'); if (!c || REDUCED) return; const x = c.getContext('2d');
+  let w, h; const P = []; const N = innerWidth < 600 ? 18 : 34;
+  const size = () => { w = c.width = innerWidth; h = c.height = innerHeight; };
+  size(); addEventListener('resize', size);
+  const mk = () => ({ x: rnd(0, w), y: rnd(-h, 0), r: rnd(5, 13), s: rnd(.3, 1.1), a: rnd(0, 6.28), va: rnd(-.025, .025), sw: rnd(0, 1.7), o: rnd(.25, .75), c: Math.random() < .18 ? '#ffd27a' : '#ff2e63' });
+  for (let i = 0; i < N; i++) P.push(mk());
+  (function loop() {
+    x.clearRect(0, 0, w, h);
+    for (const p of P) {
+      p.y += p.s; p.a += p.va; p.x += Math.sin(p.y / 55) * p.sw * .45;
+      if (p.y > h + 24) Object.assign(p, mk(), { y: -24 });
+      x.save(); x.translate(p.x, p.y); x.rotate(p.a); x.globalAlpha = p.o; x.fillStyle = p.c;
+      x.beginPath(); x.ellipse(0, 0, p.r, p.r * .6, 0, 0, 6.3); x.fill(); x.restore();
+    }
+    requestAnimationFrame(loop);
+  })();
+})();
+function burst(x, y, n = 8, chars = ['❤️', '💗', '💘', '🌹', '✨']) {
+  if (REDUCED) return; const box = $('#hearts');
+  for (let i = 0; i < n; i++) {
+    const e = document.createElement('span'); e.className = 'fly-heart'; e.textContent = chars[(Math.random() * chars.length) | 0];
+    e.style.cssText = `left:${x}px;top:${y}px;font-size:${rnd(16, 30)}px;animation-delay:${i * 35}ms`;
+    e.style.setProperty('--dx', `${rnd(-90, 90)}px`); e.style.setProperty('--rot', `${rnd(-60, 60)}deg`);
+    box.append(e); setTimeout(() => e.remove(), 1900);
+  }
 }
-const $ = (selector, root = document) => root.querySelector(selector);
-const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-const storage = {
-  get(key, fallback) { try { return JSON.parse(localStorage.getItem(`untukmu:${key}`)) ?? fallback; } catch { return fallback; } },
-  set(key, value) { try { localStorage.setItem(`untukmu:${key}`, JSON.stringify(value)); } catch { /* Private browsing is fine. */ } },
+const burstAt = (el, n = 10, c) => { const r = el.getBoundingClientRect(); burst(r.left + r.width / 2, r.top + r.height / 2, n, c); };
+function flash() { if (REDUCED) return; const f = $('#flash'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); }
+addEventListener('click', (e) => { if (!e.target.closest('#sig-pad,.icon-btn,.nav-btn,dialog')) burst(e.clientX, e.clientY, 3); });
+
+/* ───────── musik ───────── */
+const music = new BirthdayMusic(C.music?.src || '', C.music?.volume ?? 0.6);
+const mb = $('#music-btn');
+function setMusicUI(on) { mb.classList.toggle('on', on); mb.textContent = on ? '🎶' : '🎵'; mb.setAttribute('aria-pressed', String(on)); mb.setAttribute('aria-label', on ? 'Matikan musik' : 'Nyalakan musik'); }
+async function playMusic(silent = true) { try { await music.start(); STATE.music = true; save(); setMusicUI(true); return true; } catch { if (!silent) toast('Musik belum bisa diputar. Coba tombol 🎵 lagi.'); return false; } }
+function stopMusic() { music.stop(); STATE.music = false; save(); setMusicUI(false); }
+mb.addEventListener('click', () => { music.playing ? stopMusic() : playMusic(false); });
+setMusicUI(!!STATE.music);
+(function autoMusic() {
+  if (!STATE.music) return;
+  const kick = async () => { if (!STATE.music) return off(); if (await playMusic()) off(); };
+  const off = () => ['pointerdown', 'keydown', 'touchstart'].forEach((t) => removeEventListener(t, kick));
+  ['pointerdown', 'keydown', 'touchstart'].forEach((t) => addEventListener(t, kick, { once: false }));
+})();
+
+/* ───────── toast / dialog ───────── */
+let toastT;
+function toast(msg, ms = 3000) { const el = $('#lock-msg'); el.textContent = msg; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), ms); }
+function openDialog(d) { if (!d.open) d.showModal(); }
+$$('dialog').forEach((d) => {
+  $$('[data-close]', d).forEach((b) => b.addEventListener('click', () => d.close()));
+  d.addEventListener('click', (e) => { if (e.target === d) d.close(); });
+});
+$('#help-btn').addEventListener('click', () => openDialog($('#help-dialog')));
+
+/* ───────── mesin halaman ───────── */
+const pages = $$('.page');
+const TASKS = {
+  baca: { done: false, msg: 'Baca dulu suratnya ya, sebentar aja 💌' },
+  doll: { done: false, msg: 'Ajak Eren main dulu dong, minimal 3 kali 🎂' },
+  rose: { done: false, msg: 'Petik minimal 3 mawar dulu ya 🌹' },
+  album: { done: false, msg: 'Buka satu foto dulu ya 📸' },
+  quiz: { done: false, msg: 'Selesaikan kuisnya dulu, gampang kok 😌' },
+  heart: { done: false, msg: 'Isi hatinya sampai 100% dulu ya 💗' },
+  sign: { done: false, msg: 'Tanda tangan dulu di kotaknya 🖊️' },
 };
-const valueAt = (path, fallback = '') => path.split('.').reduce((value, key) => value?.[key], config) ?? fallback;
-const safeList = (items) => Array.isArray(items) ? items.filter((item) => item && typeof item === 'object') : [];
-const reasons = safeList(config.reasons);
-const coupons = safeList(config.coupons);
-const photos = safeList(config.photos).map((photo) => ({ ...photo }));
-const letterParagraphs = Array.isArray(config.letter?.paragraphs) ? config.letter.paragraphs.filter((text) => typeof text === 'string') : [];
-let toastTimer;
-
-function showToast(message) {
-  clearTimeout(toastTimer);
-  $('#toast-message').textContent = message;
-  $('#toast').classList.add('is-visible');
-  toastTimer = setTimeout(() => $('#toast').classList.remove('is-visible'), 4500);
-}
-
-function mediaURL(path) {
-  if (typeof path !== 'string' || !path.trim()) return '';
-  try {
-    const url = new URL(path.trim(), window.location.origin);
-    return ['http:', 'https:', 'blob:'].includes(url.protocol) ? url.href : '';
-  } catch { return ''; }
-}
-
-function downloadBlob(blob, name) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = name;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-}
-const fileStem = (text) => String(text).normalize('NFKD').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'untukmu';
-
-// All personal content goes through textContent, never interpolated HTML.
-$$('[data-bind]').forEach((node) => { node.textContent = valueAt(node.dataset.bind, node.textContent); });
-document.title = `Untuk ${config.recipient || 'Sayang'}, ${config.nickname || 'manusia favoritku'} ♡`;
-$('meta[property="og:title"]').content = document.title;
-$('.letter-date').textContent = config.birthdayLabel || 'Hari ini, dan setiap hari.';
-if (Number.isInteger(config.age) && config.age > 0 && config.age < 150) {
-  $('.hero-eyebrow').append(document.createTextNode(` · ${config.age} TAHUN`));
-}
-letterParagraphs.forEach((text) => {
-  const paragraph = document.createElement('p');
-  paragraph.textContent = text;
-  $('#letter-body').append(paragraph);
+Object.keys(TASKS).forEach((k) => { if (STATE.tasks[k]) TASKS[k].done = true; });
+let cur = 0, maxSeen = clamp(STATE.maxSeen | 0, 0, pages.length - 1);
+const dotsBox = $('#dots');
+pages.forEach((p, i) => {
+  const b = document.createElement('button'); b.className = 'dot'; b.type = 'button';
+  b.title = p.dataset.title || `Halaman ${i + 1}`; b.setAttribute('aria-label', b.title);
+  b.addEventListener('click', () => { if (i <= maxSeen) go(i); }); dotsBox.append(b);
 });
-$('#year').textContent = new Date().getFullYear();
-hydrateIcons();
-
-const mission = createMission({ config, storage, showToast, celebrate, openDialog, downloadBlob });
-let countdownTimers = [];
-function clearCountdown() {
-  countdownTimers.forEach(clearTimeout);
-  countdownTimers = [];
-  $('#film-countdown').hidden = true;
+const dots = $$('.dot');
+function canLeave(i) { if (pages[i].dataset.page === 'gate') return !!STATE.gateOpen; const t = pages[i].dataset.task; return !t || TASKS[t].done; }
+function sync() {
+  dots.forEach((d, i) => { d.classList.toggle('active', i === cur); d.classList.toggle('done', i < maxSeen); d.disabled = i > maxSeen; d.setAttribute('aria-current', i === cur ? 'page' : 'false'); });
+  text('#nav-label', pages[cur].dataset.title || '');
+  $('#prev').disabled = cur === 0;
+  const last = cur === pages.length - 1;
+  $('#next').disabled = last;
+  $('#next').classList.toggle('locked', !last && !canLeave(cur));
 }
-
-// One chapter at a time. Hash routes support direct links and browser Back/Forward.
-// Personalization and object-URL previews survive chapter changes (no reload).
-const personalTitle = document.title;
-let activePage = '';
-let activePageIndex = 0;
-let pageAnimationTimer;
-
-PAGES.forEach((page, index) => {
-  const dot = document.createElement('a');
-  dot.className = 'page-dot';
-  dot.href = `#${page.id}`;
-  dot.dataset.pageLink = page.id;
-  dot.setAttribute('aria-label', `Halaman ${index + 1}: ${page.label}`);
-  dot.title = page.label;
-  $('#page-dots').append(dot);
-
-  const link = document.createElement('a');
-  link.className = 'chapter-link';
-  link.href = `#${page.id}`;
-  link.dataset.pageLink = page.id;
-  link.innerHTML = `${icon(page.icon)}<span><span class="chapter-number">HALAMAN ${String(index + 1).padStart(2, '0')}</span><strong></strong><small></small></span>${icon('arrow-up-right', 'chapter-arrow')}`;
-  $('strong', link).textContent = page.label;
-  $('small', link).textContent = page.description;
-  $('#chapter-list').append(link);
-});
-
-function showPage(id, { focus = true, backward = false } = {}) {
-  const state = navigationState(id);
-  const changed = activePage !== id;
-  if (changed && activePage === 'film') {
-    resumeMusicAfterVideo = false;
-    clearCountdown();
-    video.pause();
-  }
-  if (changed) {
-    $$('dialog[open]').forEach((dialog) => dialog.close());
-    $('#toast').classList.remove('is-visible');
-  }
-  activePage = id;
-  activePageIndex = state.index;
-  document.body.dataset.page = id;
-  $$('.app-page').forEach((page) => {
-    const active = page.dataset.page === id;
-    page.hidden = !active;
-    page.classList.remove('is-entering', 'is-backward');
-    if (active) {
-      $('.page-inner', page).scrollTop = 0;
-      if (changed) {
-        page.classList.toggle('is-backward', backward);
-        page.classList.add('is-entering');
-      }
-    }
-  });
-  clearTimeout(pageAnimationTimer);
-  pageAnimationTimer = setTimeout(() => $$('.app-page').forEach((page) => page.classList.remove('is-entering', 'is-backward')), 500);
-  $$('[data-page-link]').forEach((link) => {
-    const current = link.dataset.pageLink === id;
-    if (current) link.setAttribute('aria-current', 'page');
-    else link.removeAttribute('aria-current');
-    if (link.closest('.main-nav')) {
-      const group = PAGES.find((page) => page.id === link.dataset.pageLink)?.group;
-      link.classList.toggle('is-active', group === state.current.group);
-    }
-  });
-  $('#page-number').textContent = `${String(state.index + 1).padStart(2, '0')} / ${String(state.total).padStart(2, '0')}`;
-  $('#page-name').textContent = state.current.label;
-  $('#reading-progress').style.transform = `scaleX(${(state.index + 1) / state.total})`;
-  $('#page-prev').disabled = !state.previous;
-  $('#page-prev').setAttribute('aria-label', state.previous ? `Kembali ke ${state.previous.label}` : 'Kembali — ini halaman pertama');
-  $('#page-next').href = `#${state.next.id}`;
-  $('#page-next-label').textContent = state.current.nextLabel;
-  $('#page-next').setAttribute('aria-label', `${state.current.nextLabel} — ${state.next.label}`);
-  document.title = id === 'home' ? personalTitle : `${state.current.label} · Untuk ${config.recipient || 'Sayang'} ♡`;
-  if (id === 'memories') updateAlbum();
-  if (id === 'coupons' && selectedCoupon) requestAnimationFrame(() => scratch.resize());
-  // Focus synchronously so a quick Tab/click right after navigation is never
-  // stolen by a delayed autofocus callback.
-  if (focus && changed) $(`#${id} .page-title`).focus({ preventScroll: true });
+function nudge(msg) { const n = $('#next'); n.classList.remove('nudge'); void n.offsetWidth; n.classList.add('nudge'); toast(msg, 2600); }
+function tryNext() { if (cur === pages.length - 1) return; if (!canLeave(cur)) return nudge(pages[cur].dataset.page === 'gate' ? 'Jawab dulu pertanyaannya ya 😌' : TASKS[pages[cur].dataset.task].msg); go(cur + 1); }
+function finishTask(key) {
+  if (!TASKS[key] || TASKS[key].done) return;
+  TASKS[key].done = true; STATE.tasks[key] = true; save();
+  if (pages[cur].dataset.task === key) { sync(); toast('Selesai! Lanjut ke halaman berikutnya ›'); flash(); }
 }
-
-function navigateTo(id, replace = false) {
-  const target = PAGES.some((page) => page.id === id) ? id : 'home';
-  if (pageFromHash(location.hash) === target && activePage === target) {
-    if ($('#chapters-dialog').open) $('#chapters-dialog').close();
-    return;
-  }
-  if (replace) history.replaceState(null, '', `#${target}`);
-  else location.hash = target;
-  showPage(target, { backward: PAGES.findIndex((page) => page.id === target) < activePageIndex });
+function go(i, force = false) {
+  i = clamp(i, 0, pages.length - 1); if (i === cur && !force) return;
+  pages.forEach((p, idx) => { p.hidden = idx !== i; p.classList.toggle('active', idx === i); });
+  pages[i].scrollTop = 0; cur = i; maxSeen = Math.max(maxSeen, i);
+  STATE.page = i; STATE.maxSeen = maxSeen; save(); sync(); onEnter(i);
+  const heading = $('h1,h2', pages[i]); if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
 }
-
-window.addEventListener('hashchange', () => {
-  const target = pageFromHash(location.hash);
-  // navigateTo already rendered this chapter; don't cancel its entrance animation.
-  if (activePage === target && location.hash === `#${target}`) return;
-  const backward = PAGES.findIndex((page) => page.id === target) < activePageIndex;
-  if (location.hash !== `#${target}`) history.replaceState(null, '', `#${target}`);
-  showPage(target, { backward });
+$('#next').addEventListener('click', tryNext);
+$('#prev').addEventListener('click', () => go(cur - 1));
+addEventListener('keydown', (e) => {
+  if ($('dialog[open]') || e.target.closest('input,textarea,canvas,video')) return;
+  if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); tryNext(); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(cur - 1); }
 });
-document.addEventListener('click', (event) => {
-  const link = event.target.closest('a[href^="#"]');
-  if (!link || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-  const id = pageFromHash(link.getAttribute('href'));
-  if (PAGES.some((page) => page.id === id)) {
-    event.preventDefault();
-    navigateTo(id);
-  }
-});
-$('#page-prev').addEventListener('click', () => {
-  const previous = navigationState(activePage).previous;
-  if (previous) navigateTo(previous.id);
-});
-$('#chapter-toggle').addEventListener('click', () => openDialog($('#chapters-dialog')));
-$('.skip-link').addEventListener('click', (event) => {
-  event.preventDefault();
-  $(`#${activePage} .page-title`).focus();
-});
-// Arrow keys turn pages only when focus is not inside an interactive control.
-document.addEventListener('keydown', (event) => {
-  if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || $('dialog[open]')) return;
-  if (event.target.closest('button, a, input, textarea, select, video, canvas, [role="tab"]')) return;
-  if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
-    const nextIndex = activePageIndex + (event.key === 'ArrowRight' ? 1 : -1);
-    if (nextIndex >= 0 && nextIndex < PAGES.length) { event.preventDefault(); navigateTo(PAGES[nextIndex].id); }
-  }
-});
-
-// A small extra interaction on the cover.
-const erenMessages = [
-  ['Bikin kamu senyum.', 'Harus berhasil.'],
-  ['Kuenya buat kamu.', 'Aku juga nggak rebutan.'],
-  ['Hari ini tugas kamu:', 'bahagia. Aku bantu.'],
-  ['Misi tambahan:', 'ingetin kamu, kamu disayang.'],
-];
-let erenMessageIndex = 0;
-$('#eren-mission').addEventListener('click', () => {
-  erenMessageIndex = (erenMessageIndex + 1) % erenMessages.length;
-  const [line, emphasis] = erenMessages[erenMessageIndex];
-  $('#eren-message').replaceChildren(document.createTextNode(line), document.createElement('br'));
-  const strong = document.createElement('strong');
-  strong.textContent = emphasis;
-  $('#eren-message').append(strong);
-  $('#eren-mission').classList.remove('is-changing');
-  void $('#eren-mission').offsetWidth;
-  $('#eren-mission').classList.add('is-changing');
-  const rect = $('#eren-mission').getBoundingClientRect();
-  celebrate({ x: rect.right - 20, y: rect.top, count: 20 });
-});
-$('#eren-message').setAttribute('aria-live', 'polite');
-
-// Native dialogs provide focus trapping, Escape to close, and focus restoration.
-function openDialog(dialog) {
-  if (dialog.open) return;
-  clearCountdown();
-  if (!video.hidden) video.pause();
-  dialog.showModal();
-  if (dialog.id === 'setup-dialog') $('[role="tab"][aria-selected="true"]', dialog).focus({ preventScroll: true });
-}
-$$('dialog').forEach((dialog) => {
-  $$('[data-close]', dialog).forEach((button) => button.addEventListener('click', () => dialog.close()));
-  dialog.addEventListener('click', (event) => {
-    if (event.target !== dialog) return;
-    const rect = dialog.getBoundingClientRect();
-    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
-  });
-});
-
-// A small deck of reasons; favorites stay on this device only.
-let reasonIndex = 0;
-let reasonFlipped = false;
-function setReasonFlipped(flipped) {
-  reasonFlipped = flipped;
-  $('#reason-card').classList.toggle('is-flipped', flipped);
-  $('#reason-flip').setAttribute('aria-pressed', String(flipped));
-  $('#reason-flip').innerHTML = flipped ? `${icon('rotate')} Lihat depan` : `${icon('rotate')} Balik kartu`;
-  $('.reason-front').setAttribute('aria-hidden', String(flipped));
-  $('.reason-back').setAttribute('aria-hidden', String(!flipped));
-  $('#reason-like').tabIndex = flipped ? -1 : 0;
-}
-$('#reason-flip').addEventListener('click', () => {
-  setReasonFlipped(!reasonFlipped);
-  if (reasonFlipped) mission.collect('reasons');
-});
-const savedLikes = storage.get('favorite-reasons', []);
-const likedReasons = new Set(Array.isArray(savedLikes) ? savedLikes.filter((title) => typeof title === 'string') : []);
-function updateReasonLike() {
-  const liked = likedReasons.has(reasons[reasonIndex]?.title);
-  $('#reason-like').setAttribute('aria-pressed', String(liked));
-  $('#reason-like').setAttribute('aria-label', liked ? 'Hapus alasan ini dari favorit' : 'Simpan alasan ini sebagai favorit');
-}
-function renderReason(animate = true) {
-  const reason = reasons[reasonIndex];
-  if (!reason) {
-    $('#reason-title').textContent = 'Kamu, ya kamu.';
-    $('#reason-text').textContent = 'Alasannya lebih banyak dari yang bisa ditulis di sini.';
-    $('#reason-counter').textContent = '00 / 00';
-    $('.reason-controls').hidden = true;
-    $('#reason-like').hidden = true;
-    return;
-  }
-  $('#reason-title').textContent = reason.title || 'Kamu, ya kamu.';
-  $('#reason-text').textContent = reason.text || '';
-  $('#reason-secret').textContent = reason.secret || 'Ada satu hal lagi: aku bersyukur kamu ada.';
-  $('#reason-icon').innerHTML = icon(reason.icon);
-  setReasonFlipped(false);
-  $('#reason-counter').textContent = `${String(reasonIndex + 1).padStart(2, '0')} / ${String(reasons.length).padStart(2, '0')}`;
-  $$('.reason-dot').forEach((dot, index) => dot.setAttribute('aria-pressed', String(index === reasonIndex)));
-  updateReasonLike();
-  if (animate && !reducedMotion.matches) {
-    $('#reason-card').classList.remove('is-changing');
-    void $('#reason-card').offsetWidth;
-    $('#reason-card').classList.add('is-changing');
-  }
-}
-reasons.forEach((reason, index) => {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'reason-dot';
-  button.setAttribute('aria-label', `Alasan ${index + 1}: ${reason.title || 'Tentang kamu'}`);
-  button.addEventListener('click', () => { reasonIndex = index; renderReason(); });
-  $('#reason-dots').append(button);
-});
-function moveReason(direction) {
-  if (!reasons.length) return;
-  reasonIndex = (reasonIndex + direction + reasons.length) % reasons.length;
-  renderReason();
-}
-$('#reason-prev').addEventListener('click', () => moveReason(-1));
-$('#reason-next').addEventListener('click', () => moveReason(1));
-$('#reason-like').addEventListener('click', () => {
-  const title = reasons[reasonIndex]?.title;
-  if (!title) return;
-  if (likedReasons.has(title)) { likedReasons.delete(title); showToast('Alasan dihapus dari favorit. Sayangnya tetap. ♡'); }
-  else { likedReasons.add(title); showToast('Satu alasan favorit disimpan di perangkat ini. ♡'); }
-  storage.set('favorite-reasons', [...likedReasons]);
-  updateReasonLike();
-});
-renderReason(false);
-
-// Gallery: real files when supplied, original illustrations while waiting.
-const localPhotoURLs = new Map();
-let lightboxIndex = 0;
-let albumIndex = 0;
-let albumDotCount = -1;
-const albumPhone = window.matchMedia('(max-width: 700px)');
-const albumPageSize = () => albumPhone.matches ? 1 : 2;
-let albumSizeShown = albumPageSize();
-function updateAlbum() {
-  const size = albumPageSize();
-  albumSizeShown = size;
-  const spreads = Math.max(1, Math.ceil(photos.length / size));
-  albumIndex = Math.min(albumIndex, spreads - 1);
-  const start = albumIndex * size;
-  const end = Math.min(start + size, photos.length);
-  $$('.photo-card', $('#photo-grid')).forEach((card, index) => { card.hidden = index < start || index >= end; });
-  $('#album-count').textContent = photos.length ? `${String(start + 1).padStart(2, '0')}${end > start + 1 ? `–${String(end).padStart(2, '0')}` : ''} / ${String(photos.length).padStart(2, '0')}` : '00 / 00';
-  $('#album-prev').disabled = spreads < 2;
-  $('#album-next').disabled = spreads < 2;
-  if (albumDotCount !== spreads) {
-    albumDotCount = spreads;
-    $('#album-dots').replaceChildren();
-    for (let index = 0; index < spreads; index++) {
-      const dot = document.createElement('button');
-      dot.type = 'button';
-      dot.className = 'album-dot';
-      dot.setAttribute('aria-label', `Lembar album ${index + 1}`);
-      dot.addEventListener('click', () => { albumIndex = index; updateAlbum(); });
-      $('#album-dots').append(dot);
-    }
-  }
-  $$('.album-dot').forEach((dot, index) => dot.setAttribute('aria-pressed', String(index === albumIndex)));
-}
-function moveAlbum(direction) {
-  const spreads = Math.max(1, Math.ceil(photos.length / albumPageSize()));
-  albumIndex = (albumIndex + direction + spreads) % spreads;
-  updateAlbum();
-}
-$('#album-prev').addEventListener('click', () => moveAlbum(-1));
-$('#album-next').addEventListener('click', () => moveAlbum(1));
-albumPhone.addEventListener('change', () => {
-  const firstPhoto = albumIndex * albumSizeShown;
-  albumIndex = Math.floor(firstPhoto / albumPageSize());
-  updateAlbum();
-});
-function photoSource(photo) { return photo.localSrc || mediaURL(photo.src) || photo.fallbackSrc || placeholderImage(photo.placeholder, photo.color); }
-function renderGallery() {
-  const grid = $('#photo-grid');
-  grid.replaceChildren();
-  const rotations = [-3, 2.5, -2, 2, -2.5, 2.5];
-  photos.forEach((photo, index) => {
-    const card = document.createElement('button');
-    card.type = 'button';
-    card.className = 'photo-card';
-    card.style.setProperty('--rotation', `${rotations[index % rotations.length]}deg`);
-    card.setAttribute('aria-label', `Buka foto ${index + 1}: ${photo.caption || 'Cerita kita.'} — ${photo.date || `CERITA ${String(index + 1).padStart(2, '0')}`}`);
-    const frame = document.createElement('span');
-    frame.className = 'photo-image';
-    const image = document.createElement('img');
-    image.width = 600;
-    image.height = 550;
-    image.loading = 'lazy';
-    image.decoding = 'async';
-    image.alt = photo.alt || photo.caption || `Foto kenangan ${index + 1}`;
-    image.src = photoSource(photo);
-    image.addEventListener('error', () => {
-      photo.fallbackSrc = placeholderImage(photo.placeholder, photo.color);
-      image.src = photo.fallbackSrc;
-      image.alt = `Ilustrasi penanda — ${photo.alt || photo.caption || 'foto belum ditemukan'}`;
-      $('#gallery-note').textContent = 'Ada foto yang belum ditemukan. Periksa nama file dan huruf besar/kecil di public/config.js.';
-    }, { once: true });
-    frame.append(image);
-    const caption = document.createElement('span');
-    caption.className = 'photo-caption-wrap';
-    const title = document.createElement('span');
-    title.className = 'photo-caption';
-    title.textContent = photo.caption || 'Cerita kita.';
-    const date = document.createElement('span');
-    date.className = 'photo-date';
-    date.textContent = photo.date || `CERITA ${String(index + 1).padStart(2, '0')}`;
-    caption.append(title, date);
-    const tape = document.createElement('span');
-    tape.className = 'washi-tape photo-tape';
-    tape.setAttribute('aria-hidden', 'true');
-    card.append(frame, caption, tape);
-    card.addEventListener('click', () => {
-      lightboxIndex = index;
-      renderLightbox();
-      openDialog($('#gallery-dialog'));
-    });
-    grid.append(card);
-  });
-  if (!photos.length) {
-    const empty = document.createElement('p');
-    empty.className = 'section-description';
-    empty.textContent = 'Bingkai pertama masih menunggu cerita kalian. Tambahkan foto lewat “Coba foto kamu”.';
-    grid.append(empty);
-  }
-  $('#preview-photos').disabled = photos.length === 0;
-  $('#reset-photos').hidden = localPhotoURLs.size === 0;
-  updateAlbum();
-}
-let photoFlipped = false;
-function setPhotoFlipped(flipped) {
-  photoFlipped = flipped;
-  $('#polaroid-flip').classList.toggle('is-flipped', flipped);
-  $('#photo-flip').setAttribute('aria-pressed', String(flipped));
-  $('#photo-flip').innerHTML = flipped ? `${icon('rotate')} Lihat foto` : `${icon('rotate')} Balik polaroid`;
-  $('.polaroid-front').setAttribute('aria-hidden', String(flipped));
-  $('.polaroid-back').setAttribute('aria-hidden', String(!flipped));
-}
-$('#photo-flip').addEventListener('click', () => {
-  setPhotoFlipped(!photoFlipped);
-  if (photoFlipped) mission.collect('memories');
-});
-function renderLightbox() {
-  const photo = photos[lightboxIndex];
-  if (!photo) return;
-  setPhotoFlipped(false);
-  $('#photo-secret').textContent = photo.secret || 'Foto ini belum punya catatan. Tapi setiap momen bersamamu layak disimpan.';
-  const image = document.createElement('img');
-  image.className = !photo.src && !photo.localSrc || photo.fallbackSrc ? 'placeholder-image' : '';
-  image.src = photoSource(photo);
-  image.alt = photo.alt || photo.caption || 'Foto kenangan kita';
-  image.addEventListener('error', () => {
-    photo.fallbackSrc = placeholderImage(photo.placeholder, photo.color);
-    image.src = photo.fallbackSrc;
-    image.className = 'placeholder-image';
-  }, { once: true });
-  $('#lightbox-image').replaceChildren(image);
-  $('#lightbox-caption').textContent = photo.caption || 'Cerita kita.';
-  $('#lightbox-count').textContent = `${photo.date || 'CERITA KITA'} · ${lightboxIndex + 1} / ${photos.length}`;
-  $('#lightbox-prev').hidden = photos.length < 2;
-  $('#lightbox-next').hidden = photos.length < 2;
-}
-function movePhoto(direction) {
-  if (!photos.length) return;
-  lightboxIndex = (lightboxIndex + direction + photos.length) % photos.length;
-  renderLightbox();
-}
-$('#lightbox-prev').addEventListener('click', () => movePhoto(-1));
-$('#lightbox-next').addEventListener('click', () => movePhoto(1));
-$('#gallery-dialog').addEventListener('keydown', (event) => {
-  if (event.key === 'ArrowLeft') { event.preventDefault(); movePhoto(-1); }
-  if (event.key === 'ArrowRight') { event.preventDefault(); movePhoto(1); }
-});
-let swipeStart = null;
-$('#lightbox-image').addEventListener('touchstart', (event) => { swipeStart = { x: event.changedTouches[0].clientX, y: event.changedTouches[0].clientY }; }, { passive: true });
-$('#lightbox-image').addEventListener('touchend', (event) => {
-  if (!swipeStart) return;
-  const dx = event.changedTouches[0].clientX - swipeStart.x;
-  const dy = event.changedTouches[0].clientY - swipeStart.y;
-  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) movePhoto(dx < 0 ? 1 : -1);
-  swipeStart = null;
+let sx = 0, sy = 0, st = 0;
+addEventListener('touchstart', (e) => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; st = Date.now(); }, { passive: true });
+addEventListener('touchend', (e) => {
+  if (e.target.closest('#sig-pad,#heart-btn,video,dialog,input')) return;
+  const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+  if (Date.now() - st < 700 && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.6) dx < 0 ? tryNext() : go(cur - 1);
 }, { passive: true });
-$('#preview-photos').addEventListener('click', () => $('#photo-input').click());
-$('#photo-input').addEventListener('change', (event) => {
-  const selected = [...event.target.files];
-  const valid = selected.filter((file) => (file.type.startsWith('image/') || /\.(jpe?g|png|webp|gif|avif)$/i.test(file.name)) && file.size <= 15 * 1024 * 1024);
-  const accepted = valid.slice(0, photos.length);
-  accepted.forEach((file, index) => {
-    if (localPhotoURLs.has(index)) URL.revokeObjectURL(localPhotoURLs.get(index));
-    const source = URL.createObjectURL(file);
-    localPhotoURLs.set(index, source);
-    photos[index] = { ...photos[index], localSrc: source, fallbackSrc: '', alt: file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ') };
-  });
-  renderGallery();
-  if (accepted.length) {
-    $('#gallery-note').textContent = `${accepted.length} foto lokal terpasang. Mau permanen? Masukkan file lewat VS Code; caranya ada di “Isi foto & video” pada footer.`;
-    const rejected = selected.length - accepted.length;
-    showToast(`${accepted.length} foto tampil di pratinjau. Tidak diunggah.${rejected ? ` ${rejected} dilewati: maksimal ${photos.length} foto, 15 MB per file.` : ' Akan hilang saat halaman dimuat ulang.'}`);
-  } else showToast('Pilih JPG, PNG, WebP, GIF, atau AVIF, maksimal 15 MB per foto.');
-  event.target.value = '';
-});
-$('#reset-photos').addEventListener('click', () => {
-  localPhotoURLs.forEach((url) => URL.revokeObjectURL(url));
-  localPhotoURLs.clear();
-  photos.splice(0, photos.length, ...safeList(config.photos).map((photo) => ({ ...photo })));
-  renderGallery();
-  $('#gallery-note').textContent = 'Pratinjau direset. Foto asli dari config.js ditampilkan kembali.';
-  showToast('Bingkai kembali ke cerita dari config.js.');
-});
-renderGallery();
 
-// The movie is native HTML video: no third-party embeds or autoplay.
-const video = $('#birthday-video');
-let localVideoURL = '';
-let resumeMusicAfterVideo = false;
-function showVideoError() {
-  $('#video-error').hidden = false;
-  $('#video-error').textContent = 'Videonya belum bisa diputar. Coba MP4 (H.264 + AAC), atau periksa path di config.js. Nama file harus sama persis.';
-  $('#film-play').hidden = false;
-  $('#film-player').classList.remove('is-playing');
+/* ───────── gerbang ───────── */
+const NO_TEASE = C.gate?.teases || ['eh? coba lagi deh 👀', 'bohong ah 😏', 'tombolnya malu-malu 🙈', 'udah nyerah aja ❤️', 'dia lari terus 😂', 'fix kamu. titik. 💘'];
+let noCount = 0; const noBtn = $('#no-btn');
+function runAway() {
+  noCount++; const r = Math.min(noCount * 20, 130);
+  noBtn.style.transform = `translate(${rnd(-r, r)}px,${rnd(-r / 2, r / 2)}px) rotate(${rnd(-14, 14)}deg) scale(${Math.max(.35, 1 - noCount * .09)})`;
+  text('#no-tease', NO_TEASE[Math.min(noCount - 1, NO_TEASE.length - 1)]);
+  if (noCount >= 6) { noBtn.style.opacity = 0; noBtn.style.pointerEvents = 'none'; }
 }
-function setVideoSource(source, local = false) {
-  $('#video-error').hidden = true;
-  video.hidden = false;
-  video.controls = true;
-  video.src = source;
-  $('#film-placeholder').hidden = true;
-  $('#film-play').hidden = false;
-  $('#film-player').classList.add('has-video');
-  const poster = local ? '' : mediaURL(config.video?.poster);
-  if (poster) video.poster = poster;
-  else video.removeAttribute('poster');
-  video.load();
-  if (local) $('#change-video').innerHTML = `${icon('upload')} Ganti video lokal`;
+noBtn.addEventListener('mouseenter', runAway);
+noBtn.addEventListener('click', (e) => { e.preventDefault(); runAway(); });
+$('#yes-btn').addEventListener('click', (e) => { STATE.gateOpen = true; save(); burst(e.clientX, e.clientY, 24); flash(); go(1); });
+$('#envelope').addEventListener('click', (e) => {
+  e.currentTarget.classList.add('open'); burst(e.clientX, e.clientY, 18, ['💌', '❤️', '✨']);
+  if (STATE.music) playMusic(); setTimeout(() => go(2), REDUCED ? 0 : 650);
+});
+
+/* ───────── ucapan ───────── */
+let typedStarted = false;
+function typeIt() {
+  const el = $('#typed'); const LINES = C.typed?.length ? C.typed : ['Selamat ulang tahun ❤️'];
+  if (REDUCED) { el.textContent = LINES[LINES.length - 1]; finishTask('baca'); return; }
+  let li = 0, ci = 0, del = false;
+  (function tick() {
+    const t = LINES[li]; el.textContent = del ? t.slice(0, --ci) : t.slice(0, ++ci);
+    let d = del ? 22 : rnd(36, 70);
+    if (!del && ci === t.length) { if (li === LINES.length - 1) { finishTask('baca'); return; } del = true; d = 1600; }
+    if (del && ci === 0) { del = false; li++; d = 220; }
+    setTimeout(tick, d);
+  })();
 }
-if (mediaURL(config.video?.src)) setVideoSource(mediaURL(config.video.src));
-function startFilmCountdown(done) {
-  clearCountdown();
-  if (reducedMotion.matches) { done(); return; }
-  const overlay = $('#film-countdown');
-  overlay.hidden = false;
-  let count = 3;
-  overlay.textContent = count;
+const letter = $('#letter-card');
+if (letter && matchMedia('(hover:hover)').matches && !REDUCED) {
+  letter.addEventListener('mousemove', (e) => { const r = letter.getBoundingClientRect(); const dx = (e.clientX - r.left) / r.width - .5, dy = (e.clientY - r.top) / r.height - .5; letter.style.transform = `perspective(900px) rotateY(${dx * 5}deg) rotateX(${-dy * 5}deg)`; });
+  letter.addEventListener('mouseleave', () => { letter.style.transform = ''; });
+}
+
+/* ───────── waktu ───────── */
+let clockStarted = false;
+function startClock() {
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const start = new Date(C.jadian || Date.now()); const valid = !Number.isNaN(start.getTime());
   const tick = () => {
-    count -= 1;
-    if (count > 0) { overlay.textContent = count; countdownTimers.push(setTimeout(tick, 650)); }
-    else { overlay.hidden = true; done(); }
+    let ms = Date.now() - (valid ? start.getTime() : Date.now()); if (ms < 0) ms = 0; const s = Math.floor(ms / 1000);
+    text('#c-d', Math.floor(s / 86400).toLocaleString('id-ID')); text('#c-h', pad2(Math.floor(s / 3600) % 24));
+    text('#c-m', pad2(Math.floor(s / 60) % 60)); text('#c-s', pad2(s % 60));
   };
-  countdownTimers.push(setTimeout(tick, 650));
+  tick(); setInterval(tick, 1000);
+  const days = Math.max(1, Math.floor((Date.now() - (valid ? start.getTime() : Date.now())) / 864e5));
+  const f = [
+    `☀️ ${days.toLocaleString('id-ID')} kali matahari terbit, kamu tetap yang pertama aku pikirin`,
+    `💓 jantungku udah berdetak ±${(days * 100800).toLocaleString('id-ID')} kali buat kamu`,
+    `🌹 kalau 1 mawar per hari, kamu udah punya ${days.toLocaleString('id-ID')} tangkai`,
+    `📈 level sayang: ${days.toLocaleString('id-ID')} — dan belum pernah turun`,
+  ];
+  $('#facts').innerHTML = ''; f.forEach((t, i) => { const s = document.createElement('span'); s.className = 'fact'; s.style.animationDelay = `${i * 120}ms`; s.textContent = t; $('#facts').append(s); });
 }
-$('#tear-ticket').addEventListener('click', () => {
-  const torn = $('#cinema-ticket').classList.toggle('is-torn');
-  $('#tear-ticket').setAttribute('aria-pressed', String(torn));
-  $('#tear-ticket').innerHTML = torn ? 'TIKET<br />SAH ✓' : 'SOBEK<br />TIKET';
-  if (torn) { mission.collect('film'); showToast('Tiket disobek. Kursi sebelahmu sudah aku pesan. ♡'); }
-});
-$('#film-play').addEventListener('click', async () => {
-  if (!video.src) { selectSetupTab('video'); openDialog($('#setup-dialog')); return; }
-  startFilmCountdown(async () => {
-    try { await video.play(); }
-    catch (error) { if (error.name !== 'AbortError') showToast('Tekan tombol play pada video. Kalau masih gagal, coba format MP4 (H.264).'); }
-  });
-});
-video.addEventListener('play', () => {
-  $('#film-play').hidden = true;
-  $('#film-player').classList.add('is-playing');
-  resumeMusicAfterVideo = music.playing;
-  if (music.playing) { music.stop(); updateMusicButton(); }
-});
-video.addEventListener('pause', () => {
-  $('#film-play').hidden = false;
-  $('#film-player').classList.remove('is-playing');
-  if (resumeMusicAfterVideo) {
-    resumeMusicAfterVideo = false;
-    music.start().then(updateMusicButton).catch(() => updateMusicButton());
-  }
-});
-video.addEventListener('ended', () => { $('#film-play').hidden = false; $('#film-player').classList.remove('is-playing'); });
-video.addEventListener('error', showVideoError);
-$('#change-video').addEventListener('click', () => $('#video-input').click());
-$('#video-input').addEventListener('change', async (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
-  if (!(file.type.startsWith('video/') || /\.(mp4|webm|ogv|ogg|mov)$/i.test(file.name)) || file.size > 250 * 1024 * 1024) {
-    showToast('Pilih MP4, WebM, Ogg, atau MOV. Batas pratinjau lokal 250 MB.');
-    event.target.value = '';
-    return;
-  }
-  resumeMusicAfterVideo = false;
-  video.pause();
-  if (localVideoURL) URL.revokeObjectURL(localVideoURL);
-  localVideoURL = URL.createObjectURL(file);
-  setVideoSource(localVideoURL, true);
-  showToast('Video hanya diputar di perangkatmu. Untuk Vercel, salin file ke folder media/video.');
-  try { await video.play(); } catch { /* Native controls remain available. */ }
-  event.target.value = '';
-});
 
-// Music starts only on an explicit click. Pause while the movie is playing.
-const music = new BirthdayMusic(mediaURL(config.music?.src));
-let musicBusy = false;
-function updateMusicButton() {
-  $('#music-toggle').setAttribute('aria-pressed', String(music.playing));
-  $('#music-toggle').setAttribute('aria-label', music.playing ? 'Musik menyala — matikan musik' : 'Putar musik lembut');
-  $('#music-label').textContent = music.playing ? 'Musik menyala' : 'Putar musik';
-  $('#music-toggle').title = music.playing ? `${config.music?.title || 'Melodi untukmu'} — klik untuk mematikan` : 'Putar melodi lembut. Musik tidak dimulai otomatis.';
+/* ───────── maskot ───────── */
+const DOLL = [C.mascot?.intro || 'Halo! 🎂', ...(C.mascot?.messages || [])];
+const ACT = C.mascot?.actions || {};
+let di = 0, dollPlays = STATE.dollPlays | 0;
+const bubble = $('#doll-bubble'), doll = $('#doll');
+function say(txt, cls = 'hit') {
+  doll.classList.remove('hit', 'jump'); void doll.offsetWidth; doll.classList.add(cls);
+  bubble.textContent = txt; bubble.style.animation = 'none'; void bubble.offsetWidth; bubble.style.animation = '';
+  dollPlays++; STATE.dollPlays = dollPlays; STATE.dollMsg = txt; save();
+  if (dollPlays >= 3) finishTask('doll');
 }
-$('#music-toggle').addEventListener('click', async () => {
-  if (musicBusy) return;
-  musicBusy = true;
-  resumeMusicAfterVideo = false;
-  try { if (music.playing) music.stop(); else await music.start(); }
-  catch { showToast('Musik belum bisa diputar. Periksa file lagu atau coba browser lain. Semua kejutan tetap bisa dibuka.'); }
-  finally { updateMusicButton(); musicBusy = false; }
-});
-updateMusicButton();
-
-// Three keepsakes, with gentle, device-local progress.
-const storedOpened = storage.get('opened-gifts', []);
-const openedGifts = new Set(Array.isArray(storedOpened) ? storedOpened.filter((key) => ['wish', 'letter', 'coupon'].includes(key)) : []);
-function updateGiftProgress() {
-  $$('.progress-dot').forEach((dot) => dot.classList.toggle('is-complete', openedGifts.has(dot.dataset.progress)));
-  $('#progress-label').textContent = openedGifts.size === 3 ? 'Semua kejutan dibuka. Sayangnya nggak berhenti di sini. ♡' : `${openedGifts.size} dari 3 kejutan dibuka`;
-  $$('[data-opened]').forEach((label) => { label.hidden = !openedGifts.has(label.dataset.opened); });
-}
-function markGiftOpened(key) {
-  if (openedGifts.has(key)) return;
-  openedGifts.add(key);
-  storage.set('opened-gifts', [...openedGifts]);
-  updateGiftProgress();
-}
-updateGiftProgress();
-
-const candles = $$('.candle');
-let wishComplete = false;
-let blowing = false;
-const privateWish = $('#private-wish');
-privateWish.value = typeof storage.get('private-wish', '') === 'string' ? storage.get('private-wish', '') : '';
-privateWish.addEventListener('input', () => {
-  storage.set('private-wish', privateWish.value.trim());
-  mission.renderPrivateStar();
-});
-function extinguish(candle) {
-  candle.classList.add('is-out');
-  candle.setAttribute('aria-pressed', 'true');
-  candle.setAttribute('aria-label', `Lilin ${candles.indexOf(candle) + 1} sudah ditiup`);
-  if (candles.every((item) => item.classList.contains('is-out'))) finishWish();
-}
-function finishWish() {
-  if (wishComplete) return;
-  wishComplete = true;
-  $('#wish-message').hidden = false;
-  $('#wish-placeholder').hidden = true;
-  $('#wish-instruction').textContent = 'Satu harapan kecil, diaminkan oleh semesta.';
-  $('#cake-hint').textContent = 'Semoga yang baik-baik segera menemukanmu.';
-  $('#blow-candles').innerHTML = `${icon('rotate')} Nyalakan lilin lagi`;
-  markGiftOpened('wish');
-  mission.collect('wish');
-  mission.renderPrivateStar();
-  const rect = $('#cake-scene').getBoundingClientRect();
-  celebrate({ x: rect.left + rect.width / 2, y: rect.top + rect.height * 0.4 });
-}
-candles.forEach((candle) => candle.addEventListener('click', () => { if (!blowing && !wishComplete) extinguish(candle); }));
-$('#blow-candles').addEventListener('click', () => {
-  if (blowing) return;
-  if (wishComplete) {
-    wishComplete = false;
-    candles.forEach((candle, index) => {
-      candle.classList.remove('is-out');
-      candle.setAttribute('aria-pressed', 'false');
-      candle.setAttribute('aria-label', `Tiup lilin ${index + 1}`);
-    });
-    $('#wish-message').hidden = true;
-    $('#wish-placeholder').hidden = false;
-    $('#wish-instruction').innerHTML = 'Pejamkan mata. Simpan satu harapan.<br />Kalau sudah, tiup lilinnya, ya.';
-    $('#cake-hint').textContent = 'Atau klik lilinnya satu per satu.';
-    $('#blow-candles').innerHTML = `${icon('wind')} Tiup lilin & buat harapan`;
-    return;
-  }
-  blowing = true;
-  $('#blow-candles').disabled = true;
-  candles.forEach((candle, index) => setTimeout(() => {
-    extinguish(candle);
-    if (index === candles.length - 1) { blowing = false; $('#blow-candles').disabled = false; }
-  }, reducedMotion.matches ? 0 : index * 220));
-});
-
-['#open-letter', '#letter-envelope-button'].forEach((selector) => $(selector).addEventListener('click', () => {
-  $('#letter-envelope-button').classList.add('is-opened');
-  openDialog($('#letter-dialog'));
-  markGiftOpened('letter');
-  mission.collect('letter');
+doll.addEventListener('click', (e) => { di = (di + 1) % DOLL.length; say(DOLL[di]); burst(e.clientX, e.clientY, 6, ['💗', '🎂', '✨']); });
+$$('.chip').forEach((b) => b.addEventListener('click', (e) => {
+  const k = b.dataset.act, a = ACT[k] || ['❤️']; say(a[(Math.random() * a.length) | 0], 'jump');
+  if (k === 'dandan') { doll.classList.add('dressed'); STATE.dressed = true; save(); }
+  const em = { peluk: ['🤗', '💗'], kasih: ['🍰', '🍩', '✨'], dandan: ['🎀', '✨'], rahasia: ['🤫', '💌'] }[k] || ['❤️'];
+  burst(e.clientX, e.clientY, 11, em);
 }));
-$('#save-letter').addEventListener('click', () => {
-  const text = [config.letter?.greeting || 'Untukmu,', '', ...letterParagraphs.flatMap((paragraph) => [paragraph, '']), config.letter?.closing || 'Dengan sayang,', config.sender || 'Aku'].join('\n');
-  downloadBlob(new Blob(['\uFEFF', text], { type: 'text/plain;charset=utf-8' }), `surat-untuk-${fileStem(config.recipient)}.txt`);
-  const button = $('#save-letter');
-  button.innerHTML = `${icon('check')} Surat tersimpan`;
-  setTimeout(() => { button.innerHTML = `${icon('download')} Simpan surat ini`; }, 3000);
-});
-$('#send-hug').addEventListener('click', () => {
-  celebrate({ container: $('#letter-dialog'), count: 55 });
-  const button = $('#send-hug');
-  button.innerHTML = `Pelukan diterima ${icon('heart')}`;
-  setTimeout(() => { button.innerHTML = `Peluk balik ${icon('heart')}`; }, 3500);
-});
+if (STATE.dressed) doll.classList.add('dressed');
+if (STATE.dollMsg) bubble.textContent = STATE.dollMsg; else bubble.textContent = DOLL[0];
 
-// Scratch-to-reveal coupon, with a real downloadable PNG keepsake.
-let selectedCoupon = null;
-const scratch = new ScratchCard($('#scratch-canvas'), () => {
-  $('#scratch-instruction').hidden = true;
-  $('#accessible-reveal').hidden = true;
-  $('#save-coupon').hidden = false;
-  if (document.activeElement === $('#accessible-reveal')) $('#save-coupon').focus({ preventScroll: true });
-  $('#scratch-status').textContent = 'Kupon terbuka! Simpan, lalu tukar saat kita bertemu. ♡';
-  markGiftOpened('coupon');
-  mission.collect('coupons');
-  celebrate({ container: $('.coupon-page-game'), count: 55 });
-});
-coupons.forEach((coupon, index) => {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'coupon-choice';
-  button.setAttribute('aria-pressed', 'false');
-  button.innerHTML = icon(coupon.icon);
-  const title = document.createElement('span');
-  title.textContent = coupon.title || `Kupon sayang ${index + 1}`;
-  button.append(title);
-  button.addEventListener('click', () => {
-    selectedCoupon = coupon;
-    $$('.coupon-choice').forEach((choice) => choice.setAttribute('aria-pressed', String(choice === button)));
-    $('#ticket-title').textContent = coupon.title || 'Satu dosis dimanja';
-    $('#ticket-description').textContent = coupon.description || 'Karena kamu layak disayang.';
-    $('#ticket-code').textContent = coupon.code || `LOVE-${String(index + 1).padStart(3, '0')}`;
-    $('#ticket-icon').innerHTML = icon(coupon.icon);
-    $('#scratch-area').hidden = false;
-    $('#coupon-empty').hidden = true;
-    $('#scratch-instruction').hidden = false;
-    $('#accessible-reveal').hidden = false;
-    $('#save-coupon').hidden = true;
-    $('#scratch-status').textContent = 'Gosok kotaknya, atau pilih “Buka tanpa menggosok”.';
-    requestAnimationFrame(() => scratch.reset());
+/* ───────── mawar ───────── */
+const ROSES = C.roses?.length ? C.roses : ['Buat kamu 🌹'];
+const bq = $('#bouquet'), picked = new Set();
+function roseSVG() { return `<svg width="46" height="92" viewBox="0 0 54 104" aria-hidden="true"><path d="M27 42v56" stroke="#2f9e44" stroke-width="5" stroke-linecap="round"/><path d="M27 66c-14 0-18-10-18-10s10-6 18 4z" fill="#2f9e44"/><path d="M27 82c14 0 18-10 18-10s-10-6-18 4z" fill="#37b24d"/><g class="head"><circle cx="27" cy="26" r="20" fill="#b3002d"/><circle cx="27" cy="26" r="14.5" fill="#e01e4f"/><circle cx="27" cy="26" r="9" fill="#ff5177"/><circle cx="27" cy="26" r="3.6" fill="#ffd0dc"/><path d="M12 20q15-9 30 0" stroke="rgba(255,255,255,.35)" stroke-width="2" fill="none"/></g></svg>`; }
+function updateRoses() {
+  $('#rose-bar').style.width = `${picked.size / ROSES.length * 100}%`;
+  text('#rose-count', picked.size === ROSES.length ? `Buketnya lengkap 💐 — semuanya buat kamu, ${C.recipient || 'Sayang'}.` : `${picked.size} / ${ROSES.length} mawar dipetik`);
+}
+ROSES.forEach((msg, i) => {
+  const b = document.createElement('button'); b.className = 'stalk'; b.type = 'button'; b.setAttribute('aria-label', `Mawar ${i + 1}`); b.innerHTML = roseSVG();
+  b.addEventListener('click', (e) => {
+    b.classList.add('picked'); picked.add(i); STATE.roses = [...picked]; STATE.roseMsg = msg; save();
+    const m = $('#rose-msg'); m.style.opacity = 0; setTimeout(() => { m.textContent = `“${msg}”`; m.style.opacity = 1; }, 150);
+    updateRoses(); burst(e.clientX, e.clientY, 7, ['🌹', '💖']);
+    if (picked.size >= 3) finishTask('rose');
+    if (picked.size === ROSES.length) { burst(innerWidth / 2, innerHeight / 2, 34, ['🌹', '💐', '❤️']); flash(); }
   });
-  $('#coupon-choices').append(button);
+  bq.append(b);
 });
-if (!coupons.length) {
-  $('#coupon-choices').textContent = 'Belum ada kupon. Tambahkan kejutan kecil di config.js.';
-}
-$('#accessible-reveal').addEventListener('click', () => scratch.reveal());
-function wrapCanvasText(context, text, x, y, maxWidth, lineHeight) {
-  let line = '';
-  let currentY = y;
-  for (const word of String(text).split(/\s+/)) {
-    const next = line ? `${line} ${word}` : word;
-    if (context.measureText(next).width > maxWidth && line) {
-      context.fillText(line, x, currentY);
-      line = word;
-      currentY += lineHeight;
-    } else line = next;
-  }
-  if (line) context.fillText(line, x, currentY);
-  return currentY;
-}
-$('#save-coupon').addEventListener('click', async () => {
-  if (!selectedCoupon) return;
-  const button = $('#save-coupon');
-  button.disabled = true;
-  try {
-    await document.fonts.ready;
-    const canvas = document.createElement('canvas');
-    canvas.width = 1200;
-    canvas.height = 760;
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('Canvas unavailable');
-    context.fillStyle = '#f6e9dc';
-    context.fillRect(0, 0, 1200, 760);
-    context.strokeStyle = '#bd8c75';
-    context.lineWidth = 2;
-    context.setLineDash([9, 9]);
-    context.strokeRect(35, 35, 1130, 690);
-    context.setLineDash([]);
-    context.textAlign = 'center';
-    context.fillStyle = '#9b8068';
-    context.font = '500 18px "DM Sans Variable", sans-serif';
-    context.fillText('KUPON RESMI DIMANJA · UNTUKMU.', 600, 104);
-    context.fillStyle = '#bd726d';
-    context.font = '75px Georgia';
-    context.fillText('♡', 600, 205);
-    context.fillStyle = '#293e34';
-    context.font = '450 56px "Fraunces Variable", Georgia';
-    const titleBottom = wrapCanvasText(context, selectedCoupon.title || 'Kupon sayang', 600, 294, 970, 65);
-    context.fillStyle = '#83735f';
-    context.font = '26px "DM Sans Variable", sans-serif';
-    wrapCanvasText(context, selectedCoupon.description || 'Karena kamu layak disayang.', 600, titleBottom + 65, 880, 39);
-    context.fillStyle = '#a4846b';
-    context.font = '20px "DM Sans Variable", sans-serif';
-    context.fillText(selectedCoupon.code || 'LOVE-001', 600, 583);
-    context.font = '34px "Caveat Variable", cursive';
-    context.fillText(`Untuk ${config.recipient || 'Sayang'}, dari ${config.sender || 'Aku'} ♡`, 600, 650, 1000);
-    context.font = '16px "DM Sans Variable", sans-serif';
-    context.fillText('Berlaku setiap kali kamu butuh. Tanpa kedaluwarsa.', 600, 693);
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-    if (!blob) throw new Error('PNG export failed');
-    downloadBlob(blob, `kupon-${fileStem(selectedCoupon.code || selectedCoupon.title)}.png`);
-    button.innerHTML = `${icon('check')} Kupon tersimpan`;
-    setTimeout(() => { button.innerHTML = `${icon('download')} Simpan kuponku`; }, 3000);
-  } catch { $('#scratch-status').textContent = 'Kupon belum bisa diunduh. Screenshot halaman ini juga boleh, kok. ♡'; }
-  finally { button.disabled = false; }
-});
+if (STATE.roses?.length) { const st = [...bq.children]; STATE.roses.forEach((i) => { if (st[i]) { st[i].classList.add('picked'); picked.add(i); } }); updateRoses(); if (STATE.roseMsg) text('#rose-msg', `“${STATE.roseMsg}”`); } else updateRoses();
 
-// Friendly, accessible media setup. Local previews never leave the browser.
-function selectSetupTab(name, focus = false) {
-  $$('[data-setup-tab]').forEach((tab) => {
-    const active = tab.dataset.setupTab === name;
-    tab.setAttribute('aria-selected', String(active));
-    tab.tabIndex = active ? 0 : -1;
-    $(`#setup-${tab.dataset.setupTab}`).hidden = !active;
-    if (active && focus) tab.focus();
+/* ───────── album ───────── */
+const photos = (C.photos || []).map((p) => ({ ...p })); let localPhotos = [];
+function renderAlbum() {
+  const grid = $('#album-grid'); grid.innerHTML = '';
+  photos.forEach((p, i) => {
+    const src = localPhotos[i] || p.src;
+    const b = document.createElement('button'); b.className = 'photo-card'; b.type = 'button';
+    const thumb = document.createElement('span'); thumb.className = 'photo-thumb';
+    if (src) { const img = document.createElement('img'); img.src = src; img.alt = p.alt || p.caption || ''; img.loading = 'lazy'; thumb.append(img); }
+    else thumb.textContent = ['🌹', '🎂', '✨', '💌', '🎞️', '❤️'][i % 6];
+    const cap = document.createElement('span'); cap.className = 'photo-caption'; cap.textContent = p.caption || `Cerita ${i + 1}`;
+    const date = document.createElement('small'); date.textContent = p.date || '';
+    b.append(thumb, cap, date); b.addEventListener('click', () => openPhoto(i)); grid.append(b);
   });
 }
-$$('[data-setup-tab]').forEach((tab, index, tabs) => {
-  tab.addEventListener('click', () => selectSetupTab(tab.dataset.setupTab));
-  tab.addEventListener('keydown', (event) => {
-    let next;
-    if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
-    if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
-    if (event.key === 'Home') next = 0;
-    if (event.key === 'End') next = tabs.length - 1;
-    if (next !== undefined) { event.preventDefault(); selectSetupTab(tabs[next].dataset.setupTab, true); }
+function openPhoto(i) {
+  const p = photos[i]; const src = localPhotos[i] || p.src; const box = $('#photo-large'); box.innerHTML = '';
+  if (src) { const img = document.createElement('img'); img.src = src; img.alt = p.alt || p.caption || ''; box.append(img); }
+  else { const d = document.createElement('div'); d.className = 'placeholder'; d.textContent = '🌹'; box.append(d); }
+  text('#photo-caption', p.caption || ''); text('#photo-secret', p.secret || ''); openDialog($('#photo-dialog')); finishTask('album');
+}
+$('#photo-input').addEventListener('change', (e) => {
+  const files = [...e.target.files].filter((f) => f.type.startsWith('image/') && f.size <= 15 * 1024 * 1024).slice(0, photos.length);
+  localPhotos.forEach((u) => URL.revokeObjectURL(u)); localPhotos = files.map((f) => URL.createObjectURL(f));
+  $('#reset-photos').hidden = localPhotos.length === 0; renderAlbum();
+  text('#album-note', localPhotos.length ? `${localPhotos.length} foto lokal terpasang. Tidak di-upload; hilang saat refresh.` : 'Foto sementara tidak di-upload. Untuk permanen, taruh di public/media/photos/.');
+});
+$('#reset-photos').addEventListener('click', () => { localPhotos.forEach((u) => URL.revokeObjectURL(u)); localPhotos = []; $('#reset-photos').hidden = true; $('#photo-input').value = ''; renderAlbum(); text('#album-note', 'Foto sementara tidak di-upload. Untuk permanen, taruh di public/media/photos/.'); });
+renderAlbum();
+
+/* ───────── kuis ───────── */
+const QUIZ = C.quiz?.length ? C.quiz : [{ q: 'Kamu sayang aku nggak?', o: ['Iya', 'Banget', 'Selalu'], f: 'Sah ❤️' }];
+let qi = STATE.quizIndex | 0;
+function quizDoneUI() { text('#q-text', 'Skor kamu: 100/100 🏆'); $('#q-opts').innerHTML = ''; $('#q-feed').classList.add('big'); text('#q-feed', 'Sempurna. Ya iyalah, semua jawabannya kamu 😚'); text('#q-progress', 'Lulus dengan predikat: Pacar Teladan'); }
+function renderQ() {
+  const Q = QUIZ[qi]; text('#q-text', Q.q); text('#q-progress', `Soal ${qi + 1} dari ${QUIZ.length}`); text('#q-feed', '\u00a0'); $('#q-feed').classList.remove('big');
+  const box = $('#q-opts'); box.innerHTML = '';
+  Q.o.forEach((t) => {
+    const b = document.createElement('button'); b.className = 'opt'; b.type = 'button'; b.textContent = t;
+    b.addEventListener('click', (e) => {
+      box.querySelectorAll('.opt').forEach((x) => { x.disabled = true; }); b.classList.add('good'); text('#q-feed', Q.f); burst(e.clientX, e.clientY, 10, ['✅', '💖', '🌹']);
+      setTimeout(() => { qi++; STATE.quizIndex = qi; save(); if (qi < QUIZ.length) renderQ(); else { quizDoneUI(); STATE.quizDone = true; save(); finishTask('quiz'); burst(innerWidth / 2, innerHeight / 2, 26, ['🏆', '🎉', '❤️']); } }, REDUCED ? 200 : 1150);
+    });
+    box.append(b);
   });
-});
-$('#open-setup').addEventListener('click', () => { selectSetupTab('photos'); openDialog($('#setup-dialog')); });
-$('#setup-photo-preview').addEventListener('click', () => { $('#setup-dialog').close(); navigateTo('memories'); $('#photo-input').click(); });
-$('#setup-video-preview').addEventListener('click', () => { $('#setup-dialog').close(); navigateTo('film'); $('#video-input').click(); });
+}
+if (STATE.quizDone || qi >= QUIZ.length) quizDoneUI(); else renderQ();
 
-let finalHugs = 0;
-$('#final-hug').addEventListener('click', () => {
-  finalHugs++;
-  const rect = $('#final-hug').getBoundingClientRect();
-  celebrate({ x: rect.left + rect.width / 2, y: rect.top, count: 85 });
-  $('#hug-note').textContent = finalHugs === 1 ? 'Pelukan sampai. Rasanya pulang. ♡' : `${finalHugs} pelukan terkirim. Buat kamu, nggak akan kehabisan.`;
-  $('#final-hug').innerHTML = `${icon('heart')} Peluk sekali lagi`;
+/* ───────── tahan hati ───────── */
+let pct = STATE.unlocked ? 100 : 0, holding = false, unlocked = !!STATE.unlocked, raf = null;
+const TEASE = C.heart?.teases || ['tekan dan tahan ya… 😳', 'nah gitu, jangan dilepas 💗', 'setengah jalan, kamu kuat!', 'dikit lagi sayang 🥺', 'WAAA HAMPIR PENUH!! 🔥'];
+const hb = $('#heart-btn');
+function updateHeart() { $('#heart-fill').setAttribute('y', String(112 - 112 * pct / 100)); text('#heart-pct', `${Math.round(pct)}%`); text('#heart-tease', unlocked ? 'Sudah kebuka 🎬 lanjut ke halaman videonya' : TEASE[Math.min(TEASE.length - 1, Math.floor(pct / 21))]); }
+function loopHold() { if (!holding || unlocked) return; pct = Math.min(100, pct + .9); updateHeart(); if (pct >= 100) return unlockVideo(); raf = requestAnimationFrame(loopHold); }
+function decay() { if (holding || unlocked || pct <= 0) return; pct = Math.max(0, pct - .5); updateHeart(); requestAnimationFrame(decay); }
+function startHold(e) { if (unlocked) return; if (e?.cancelable) e.preventDefault(); holding = true; hb.classList.add('beat'); cancelAnimationFrame(raf); loopHold(); burstAt(hb, 3); }
+function releaseHold() { if (unlocked || !holding) return; holding = false; hb.classList.remove('beat'); cancelAnimationFrame(raf); requestAnimationFrame(decay); }
+hb.addEventListener('pointerdown', startHold);
+['pointerup', 'pointercancel', 'pointerleave'].forEach((t) => hb.addEventListener(t, releaseHold));
+addEventListener('pointerup', releaseHold);
+hb.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) startHold(e); });
+hb.addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'Enter') releaseHold(); });
+function unlockVideo() { unlocked = true; holding = false; hb.classList.remove('beat'); pct = 100; updateHeart(); burstAt(hb, 40); flash(); STATE.unlocked = true; save(); finishTask('heart'); }
+$('#heart-skip').addEventListener('click', () => { if (!unlocked) unlockVideo(); });
+updateHeart();
+
+/* ───────── video ───────── */
+const vid = $('#the-video'); let vidTimer = null, vidTick = null; let musicWasPlaying = false;
+function setVideoSrc(src, poster) {
+  if (!src) { vid.hidden = true; $('#video-empty').hidden = false; return; }
+  $('#video-empty').hidden = true; vid.hidden = false; vid.src = src; if (poster) vid.poster = poster; vid.load();
+}
+setVideoSrc(C.video?.src, C.video?.poster);
+function stopVideoCountdown() { clearTimeout(vidTimer); clearInterval(vidTick); $('#vid-note').classList.remove('show'); }
+function startVideoCountdown() {
+  stopVideoCountdown(); if (!vid.src || vid.hidden) return;
+  const delay = Math.max(0, Number(C.video?.delay ?? 2000)); const note = $('#vid-note'); let left = Math.ceil(delay / 1000);
+  note.textContent = `Videonya mulai dalam ${left}…`; note.classList.add('show');
+  vidTick = setInterval(() => { left--; note.textContent = left > 0 ? `Videonya mulai dalam ${left}…` : 'Mulai 🎬'; if (left <= 0) clearInterval(vidTick); }, 1000);
+  vidTimer = setTimeout(async () => {
+    try { await vid.play(); note.textContent = 'Selamat menonton 🍿'; setTimeout(() => note.classList.remove('show'), 2200); }
+    catch { try { vid.muted = true; await vid.play(); note.textContent = '🔇 Ketuk video untuk menyalakan suara'; note.onclick = () => { vid.muted = false; note.classList.remove('show'); note.onclick = null; }; } catch { note.textContent = 'Ketuk tombol play untuk mulai ▶'; } }
+  }, delay);
+}
+vid.addEventListener('play', () => { musicWasPlaying = music.playing; if (music.playing) music.stop(); });
+['pause', 'ended'].forEach((t) => vid.addEventListener(t, () => { if (musicWasPlaying && STATE.music) playMusic(); musicWasPlaying = false; }));
+$('#video-input').addEventListener('change', (e) => { const f = e.target.files?.[0]; if (!f || !f.type.startsWith('video/') || f.size > 250 * 1024 * 1024) return; if (vid.src?.startsWith('blob:')) URL.revokeObjectURL(vid.src); setVideoSrc(URL.createObjectURL(f)); startVideoCountdown(); });
+
+/* ───────── sertifikat ───────── */
+if (!STATE.certDate) { STATE.certDate = new Date().toISOString(); save(); }
+if (!STATE.serial) { STATE.serial = `BD-${new Date(STATE.certDate).getFullYear()}-${String(Math.floor(rnd(100, 999)))}`; save(); }
+const CERT_DATE_STR = new Date(STATE.certDate).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+text('#cert-date', `Ditetapkan pada ${CERT_DATE_STR} • No. ${STATE.serial}`);
+const pad = $('#sig-pad'), px = pad.getContext('2d');
+let drawing = false, signed = false, last = null, ink = 0;
+function fitPad() {
+  const r = pad.getBoundingClientRect(), dpr = devicePixelRatio || 1; if (!r.width) return;
+  const img = signed ? pad.toDataURL() : null; pad.width = r.width * dpr; pad.height = r.height * dpr;
+  px.setTransform(dpr, 0, 0, dpr, 0, 0); px.lineCap = 'round'; px.lineJoin = 'round'; px.strokeStyle = '#8a0d3a';
+  const src = img || STATE.signature; if (src) { const i = new Image(); i.onload = () => px.drawImage(i, 0, 0, r.width, r.height); i.src = src; }
+}
+addEventListener('resize', () => setTimeout(fitPad, 150));
+const ppos = (e) => { const r = pad.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+pad.addEventListener('pointerdown', (e) => { e.preventDefault(); pad.setPointerCapture(e.pointerId); drawing = true; last = ppos(e); });
+pad.addEventListener('pointermove', (e) => {
+  if (!drawing) return; e.preventDefault(); const p = ppos(e), d = Math.hypot(p.x - last.x, p.y - last.y);
+  px.lineWidth = Math.max(1.4, 4.2 - d * .12); px.beginPath(); px.moveTo(last.x, last.y); px.lineTo(p.x, p.y); px.stroke();
+  ink += d; last = p;
+  if (!signed && ink > 40) { signed = true; $('#pad-hint').style.display = 'none'; text('#cert-status', 'Tanda tangan terdeteksi ✨ tinggal klik “Sahkan & Download”.'); finishTask('sign'); }
+});
+function endDraw() { if (!drawing) return; drawing = false; if (signed) { try { STATE.signature = pad.toDataURL('image/png'); save(); } catch {} } }
+['pointerup', 'pointercancel', 'pointerleave'].forEach((t) => pad.addEventListener(t, endDraw));
+$('#clear-sig').addEventListener('click', () => {
+  px.clearRect(0, 0, pad.width, pad.height); signed = false; ink = 0; STATE.signature = ''; STATE.sealed = false; STATE.tasks.sign = false; TASKS.sign.done = false; save(); sync();
+  $('#pad-hint').style.display = ''; $('#wax').classList.remove('on'); text('#cert-status', 'Belum ditandatangani…');
+});
+if (STATE.signature) { signed = true; ink = 999; $('#pad-hint').style.display = 'none'; text('#cert-status', 'Tanda tangan kamu tersimpan ✨'); setTimeout(fitPad, 200); if (STATE.sealed) { $('#wax').classList.add('on'); text('#cert-status', 'Sertifikat sudah disahkan 🌹 bisa di-download lagi kapan aja.'); } }
+function wrapText(ctx, text, x, y, maxW, lineH, align = 'center') {
+  ctx.textAlign = align; const words = String(text).split(/\s+/); let line = '';
+  for (const w of words) { const next = line ? `${line} ${w}` : w; if (ctx.measureText(next).width > maxW && line) { ctx.fillText(line, x, y); line = w; y += lineH; } else line = next; }
+  if (line) ctx.fillText(line, x, y); return y + lineH;
+}
+function loadImage(src) { return new Promise((res) => { if (!src) return res(null); const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; }); }
+async function renderCertificate() {
+  await document.fonts.ready;
+  const canvas = document.createElement('canvas'); canvas.width = 2000; canvas.height = 1414; const ctx = canvas.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 2000, 1414); g.addColorStop(0, '#fffaf2'); g.addColorStop(1, '#ffeef4'); ctx.fillStyle = g; ctx.fillRect(0, 0, 2000, 1414);
+  ctx.strokeStyle = '#c9a227'; ctx.lineWidth = 10; ctx.strokeRect(50, 50, 1900, 1314); ctx.lineWidth = 3; ctx.strokeRect(75, 75, 1850, 1264);
+  ctx.textAlign = 'center'; ctx.fillStyle = '#8a6a10'; ctx.font = '600 30px "DM Sans Variable", sans-serif'; ctx.fillText((C.certificate?.kicker || 'SERTIFIKAT RESMI').split('').join(' '), 1000, 170);
+  ctx.fillStyle = '#b3002d'; ctx.font = '700 92px "Fraunces Variable", Georgia'; ctx.fillText(C.certificate?.title || 'Happy Birthday', 1000, 290);
+  ctx.fillStyle = '#5a2a3d'; ctx.font = '34px "DM Sans Variable", sans-serif'; ctx.fillText(C.certificate?.text || 'Dengan ini dinyatakan bahwa', 1000, 380);
+  ctx.fillStyle = '#8a0d3a'; ctx.font = 'italic 700 96px "Fraunces Variable", Georgia'; ctx.fillText(C.recipient || 'Sayang', 1000, 500);
+  ctx.fillStyle = '#5a2a3d'; ctx.font = '32px "DM Sans Variable", sans-serif';
+  let y = wrapText(ctx, `secara sah, sadar, dan tanpa paksaan ditetapkan sebagai ${C.certificate?.role || 'Wanita Kesayangan'} satu-satunya dari ${C.sender || 'Aku'}.`, 1000, 575, 1400, 46);
+  ctx.font = '30px "DM Sans Variable", sans-serif'; y += 20;
+  (C.certificate?.perks || []).forEach((p) => { ctx.fillText(p, 1000, y); y += 48; });
+  ctx.font = 'italic 28px "DM Sans Variable", sans-serif'; wrapText(ctx, C.certificate?.note || '', 1000, y + 20, 1400, 40);
+  const sigY = 1080; ctx.strokeStyle = '#3a1326'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(330, sigY + 120); ctx.lineTo(830, sigY + 120); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(1170, sigY + 120); ctx.lineTo(1670, sigY + 120); ctx.stroke();
+  const senderSig = await loadImage(C.certificate?.signatureSrc);
+  if (senderSig) ctx.drawImage(senderSig, 380, sigY - 20, 400, 140); else { ctx.fillStyle = '#8a0d3a'; ctx.font = '80px "Caveat Variable", cursive'; ctx.fillText(C.sender || 'Aku', 580, sigY + 70); }
+  const recSig = await loadImage(STATE.signature); if (recSig) ctx.drawImage(recSig, 1220, sigY - 20, 400, 140);
+  ctx.fillStyle = '#3a1326'; ctx.font = '600 36px "Fraunces Variable", Georgia'; ctx.fillText(C.sender || 'Aku', 580, sigY + 170); ctx.fillText(C.recipient || 'Sayang', 1420, sigY + 170);
+  ctx.fillStyle = '#6d4a5c'; ctx.font = '26px "DM Sans Variable", sans-serif'; ctx.fillText('Pemberi Hadiah', 580, sigY + 210); ctx.fillText('Penerima Hadiah', 1420, sigY + 210);
+  ctx.fillText(`Ditetapkan pada ${CERT_DATE_STR} • No. ${STATE.serial}`, 1000, 1330);
+  return canvas;
+}
+$('#preview-cert').addEventListener('click', async () => { const canvas = await renderCertificate(); $('#preview-img').src = canvas.toDataURL('image/png'); openDialog($('#preview-dialog')); });
+$('#save-cert').addEventListener('click', async () => {
+  if (!signed) return toast('Tanda tangan dulu ya, baru bisa disahkan 🖊️');
+  const canvas = await renderCertificate(); const blob = await new Promise((res) => canvas.toBlob(res, 'image/png')); if (!blob) return;
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `sertifikat-birthday-${(C.recipient || 'sayang').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.png`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  STATE.sealed = true; save(); $('#wax').classList.add('on'); $('#cert').classList.add('sealed'); text('#cert-status', 'Sertifikat sudah disahkan 🌹 bisa di-download lagi kapan aja.'); burstAt($('#save-cert'), 24);
 });
 
-// Initialize the requested chapter only after all interactive state is ready.
-const initialPage = pageFromHash(location.hash);
-if (location.hash !== `#${initialPage}`) history.replaceState(null, '', `#${initialPage}`);
-showPage(initialPage, { focus: false });
+/* ───────── penutup ───────── */
+let loveIndex = STATE.loveIndex | 0;
+$('#love-btn').addEventListener('click', (e) => { const msgs = C.closing?.love || ['Aku juga sayang kamu ❤️']; text('#love-msg', msgs[loveIndex % msgs.length]); loveIndex++; STATE.loveIndex = loveIndex; save(); burst(e.clientX, e.clientY, 26, ['❤️', '💗', '💘']); flash(); });
+$('#again-btn').addEventListener('click', resetAll);
 
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    resumeMusicAfterVideo = false;
-    if (music.playing) { music.stop(); updateMusicButton(); }
-    if (!video.hidden) video.pause();
-  }
-});
-window.addEventListener('pagehide', (event) => {
-  resumeMusicAfterVideo = false;
-  music.stop();
-  if (!video.hidden) video.pause();
-  updateMusicButton();
-  if (!event.persisted) {
-    music.destroy();
-    scratch.destroy();
-    localPhotoURLs.forEach((url) => URL.revokeObjectURL(url));
-    if (localVideoURL) URL.revokeObjectURL(localVideoURL);
-  }
-});
+/* ───────── enter halaman ───────── */
+function onEnter(i) {
+  const id = pages[i].dataset.page;
+  if (id === 'greeting' && !typedStarted) { typedStarted = true; typeIt(); }
+  if (id === 'time' && !clockStarted) { clockStarted = true; startClock(); }
+  if (id === 'video') { const c = $('#curtain'); if (c) { c.classList.add('open'); setTimeout(() => { c.style.display = 'none'; }, REDUCED ? 0 : 1700); } startVideoCountdown(); } else { stopVideoCountdown(); if (!vid.hidden) vid.pause(); }
+  if (id === 'certificate') setTimeout(fitPad, 300);
+  if (id === 'closing') { burst(innerWidth / 2, innerHeight / 2, 26); flash(); }
+}
+
+/* ───────── boot ───────── */
+if (STATE.gateOpen) {
+  const target = clamp(STATE.page | 0, 1, pages.length - 1); maxSeen = Math.max(maxSeen, target); go(target, true);
+  const r = $('#resume-msg'); r.textContent = 'Lanjut dari halaman terakhir 💌'; r.classList.add('show'); setTimeout(() => r.classList.remove('show'), 2600);
+} else { go(0, true); }
+sync();

@@ -19,11 +19,10 @@ Tidak perlu deploy ke Vercel dulu. Semua bisa dites di komputer sendiri.
 
    Jika folder proyek sudah ada dari clone sebelumnya:
      cd website-happybrithday
-     git pull
+     git pull origin arena/e478c91e-website-happybrithday
 
    Di VS Code: File > Open Folder, pilih folder yang berisi package.json.
    Jangan hanya membuka file index.html satu per satu.
-   Versi 8 halaman berada di branch di atas, bukan branch main.
 
 3. JALANKAN WEBSITE
    Buka Terminal > New Terminal, lalu ketik:
@@ -34,7 +33,6 @@ Tidak perlu deploy ke Vercel dulu. Semua bisa dites di komputer sendiri.
    Tunggu sampai muncul alamat lokal. Buka:
      http://localhost:3000
 
-   Gunakan alamat yang tertulis di terminal jika port 3000 sedang dipakai.
    Biarkan terminal tetap berjalan selama mencoba website.
    Untuk berhenti: tekan Ctrl+C di terminal.
 
@@ -42,25 +40,25 @@ Tidak perlu deploy ke Vercel dulu. Semua bisa dites di komputer sendiri.
    Proyek ini memakai Vite, jadi jalankan npm run dev.
 
    CARA MEMBUKA HADIAH
-   Website sekarang terdiri dari 8 halaman + Misi Rahasia Eren:
-     1. Pembuka: klik misi Eren atau tombol 0/6 di header.
-     2. Alasan sayang: balik kartu 3D, baca pesan rahasia, simpan favorit.
-     3. Album: perbesar foto, balik polaroid, baca catatan rahasia.
-     4. Film: sobek tiket bioskop, lalu putar video kalian.
-     5. Harapan: tulis harapan privat (opsional), tiup lilin.
-     6. Surat: klik amplop, baca dan simpan surat.
-     7. Kupon: pilih, gosok, dan unduh kupon.
-     8. Penutup: kumpulkan 6 stempel, buka hadiah terakhir, unduh Birthday Pass.
+   Website sekarang berbentuk buku kejutan seperti hadiah Hari Girlfriend:
+     1. Sampul: jawab “Iya, aku”. Tombol “Bukan” akan kabur.
+     2. Pembuka: ketuk amplop.
+     3. Ucapan: baca surat yang muncul.
+     4. Waktu Kita: lihat hitungan hari hubungan.
+     5. Eren: ajak maskot main minimal 3 kali.
+     6. Mawar: petik minimal 3 mawar.
+     7. Album: buka satu foto.
+     8. Kuis: jawab semua pertanyaan.
+     9. Isi Hati: tahan hati sampai 100%, atau klik “Lewati animasi tahan”.
+     10. Video: tonton video kalian.
+     11. Sertifikat: tanda tangan, lalu download PNG.
+     12. Penutup: kirim sayang atau ulang dari awal.
 
-   Enam stempel bersifat opsional. Semua halaman tetap bisa dibuka.
-   Progres misi dan harapan privat hanya tersimpan di browser perangkat ini.
-
-   Gunakan Kembali/Lanjut atau tombol Halaman untuk berpindah.
-   Jangan scroll untuk mencari bagian berikutnya: tiap halaman berdiri sendiri.
-   Layar sangat pendek mungkin punya scroll kecil di dalam halaman saja.
+   Beberapa halaman mengunci tombol Lanjut sampai tugasnya selesai.
+   Progres tersimpan di browser. Refresh tidak mengulang dari awal.
 
 4. MASUKKAN ISI PERSONAL
-   Nama, surat, alasan sayang, harapan, dan kupon:
+   Nama, surat, mawar, kuis, sertifikat, dan penutup:
      public/config.js
 
    Foto kalian:
@@ -69,6 +67,8 @@ Tidak perlu deploy ke Vercel dulu. Semua bisa dites di komputer sendiri.
      public/media/video/
    Musik sendiri (opsional):
      public/media/music/
+   Tanda tangan kamu (opsional):
+     public/media/signature.png
 
    Setelah menyalin file media, daftarkan path-nya di public/config.js.
    Contoh path foto: /media/photos/kita.jpg
@@ -110,9 +110,10 @@ Tidak perlu deploy ke Vercel dulu. Semua bisa dites di komputer sendiri.
    - Port sudah dipakai: gunakan alamat lain yang muncul di terminal.
    - Foto/video tidak tampil: cek path dan nama file di config.js.
    - Video tidak dapat diputar: gunakan MP4 dengan H.264 + AAC.
+   - Ingin mengulang dari awal: buka halaman Penutup, klik “Ulang dari awal”.
 
 Panduan lengkap, ukuran media yang disarankan, privasi, dan langkah Vercel:
   README.md
 
 Belum ada foto/video pasangan yang dimasukkan, sesuai permintaan.
-Bingkai sementara memakai ilustrasi penanda, bukan foto orang lain.
+Bingkai sementara memakai penanda sederhana, bukan foto orang lain.

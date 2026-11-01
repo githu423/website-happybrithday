@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Eight little pages, one big love. A personal, Eren-inspired birthday keepsake.",
+  "description": "A birthday surprise book in the style of a Girlfriend Day gift: gate, letter, Eren mascot, roses, quiz, heart-hold video unlock, and a signed certificate.",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "start": "vite --host 0.0.0.0",

@@ -8,8 +8,9 @@ const melody = [
 ];
 
 export class BirthdayMusic {
-  constructor(src = '') {
+  constructor(src = '', volume = 0.6) {
     this.src = src;
+    this.volume = Math.max(0, Math.min(1, Number(volume) || 0.6));
     this.playing = false;
     this.context = null;
     this.timer = null;
@@ -19,7 +20,7 @@ export class BirthdayMusic {
     this.audio = src ? new Audio(src) : null;
     if (this.audio) {
       this.audio.loop = true;
-      this.audio.volume = 0.3;
+      this.audio.volume = this.volume;
       this.audio.preload = 'none';
     }
   }
@@ -36,14 +37,14 @@ export class BirthdayMusic {
         if (!this.context) {
           this.context = new AudioContextClass();
           this.master = this.context.createGain();
-          this.master.gain.value = 0.14;
+          this.master.gain.value = 0.14 * this.volume;
           this.master.connect(this.context.destination);
         }
         await this.context.resume();
         if (request !== this.request) return false;
         clearTimeout(this.suspendTimer);
         this.master.gain.cancelScheduledValues(this.context.currentTime);
-        this.master.gain.setTargetAtTime(0.14, this.context.currentTime, 0.08);
+        this.master.gain.setTargetAtTime(0.14 * this.volume, this.context.currentTime, 0.08);
         this.nextTime = this.context.currentTime + 0.08;
         this.schedule();
         this.timer = setInterval(() => this.schedule(), 150);
